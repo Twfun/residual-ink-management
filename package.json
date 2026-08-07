@@ -1,0 +1,40 @@
+{
+  "name": "residual-ink-management",
+  "version": "1.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "build": "npm run prisma:generate && npm --workspace apps/api run build && npm --workspace apps/web run build",
+    "typecheck": "npm run prisma:generate && tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "npm --workspace apps/api run test",
+    "test:web": "npm --workspace apps/web run test",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:push": "prisma db push --schema prisma/schema.prisma",
+    "prisma:seed": "node prisma/seed.cjs",
+    "excel:verify": "node scripts/verify-legacy-workbook.mjs",
+    "xrite:verify": "node scripts/verify-xrite.mjs",
+    "standalone:smoke": "node scripts/smoke-standalone.mjs",
+    "standalone:import-smoke": "set RIM_IMPORT_SMOKE=1&& node scripts/smoke-standalone.mjs",
+    "build:api:exe": "npm --workspace apps/api run build && set PKG_CACHE_PATH=.pkg-cache&& npm.cmd exec pkg -- apps/api/dist/main.js --targets node22-win-x64 --public --public-packages \"*\" --no-bytecode --output apps/desktop/src-tauri/binaries/residual-ink-api-x86_64-pc-windows-msvc.exe",
+    "desktop:prepare": "node scripts/prepare-desktop.mjs && npm run build:api:exe && npm --workspace apps/web run build",
+    "desktop:dev": "npm run desktop:prepare && tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
+    "desktop:build": "npm run desktop:prepare && tauri build --config apps/desktop/src-tauri/tauri.conf.json"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.1",
+    "@yao-pkg/pkg": "^6.19.0",
+    "concurrently": "^9.1.2",
+    "prisma": "^6.2.1",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

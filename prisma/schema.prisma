@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../apps/api/src/generated/client"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model UserAccount {
+  id                 BigInt         @id @default(autoincrement())
+  username           String         @unique @db.VarChar(80)
+  passwordHash       String         @map("password_hash") @db.VarChar(120)
+  displayName        String         @map("display_name") @db.VarChar(120)
+  roleCode           String         @map("role_code") @db.VarChar(40)
+  enabled            Boolean        @default(true)
+  mustChangePassword Boolean        @default(false) @map("must_change_password")
+  lastLoginAt        DateTime?      @map("last_login_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  role               Role           @relation(fields: [roleCode], references: [code])
+  logs               OperationLog[]
+
+  @@index([roleCode], map: "idx_user_role")
+  @@map("user_account")
+}
+
+model LoginAttempt {
+  username    String    @id @db.VarChar(80)
+  failures    Int       @default(0)
+  lockedUntil DateTime? @map("locked_until")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("login_attempt")
+}
+
+model Role {
+  code        String           @id @db.VarChar(40)
+  name        String           @db.VarChar(80)
+  description String?          @db.VarChar(300)
+  sortOrder   Int              @default(0) @map("sort_order")
+  enabled     Boolean          @default(true)
+  users       UserAccount[]
+  permissions RolePermission[]
+
+  @@map("role")
+}
+
+model Permission {
+  code      String           @id @db.VarChar(80)
+  label     String           @db.VarChar(120)
+  module    String           @db.VarChar(40)
+  sortOrder Int              @default(0) @map("sort_order")
+  roles     RolePermission[]
+
+  @@index([module], map: "idx_permission_module")
+  @@map("permission")
+}
+
+model RolePermission {
+  roleCode       String     @map("role_code") @db.VarChar(40)
+  permissionCode String     @map("permission_code") @db.VarChar(80)
+  role           Role       @relation(fields: [roleCode], references: [code], onDelete: Cascade)
+  permission     Permission @relation(fields: [permissionCode], references: [code], onDelete: Cascade)
+
+  @@id([roleCode, permissionCode])
+  @@map("role_permission")
+}
+
+model ResidualInk {
+  id              BigInt     @id @default(autoincrement())
+  storageLocation String     @unique @map("storage_location") @db.VarChar(120)
+  rollerColorCode String?    @map("roller_color_code") @db.VarChar(200)
+  inboundDate     DateTime?  @map("inbound_date") @db.Date
+  weightKg        Decimal?   @map("weight_kg") @db.Decimal(12, 3)
+  lStar           Decimal?   @map("l_star") @db.Decimal(8, 4)
+  aStar           Decimal?   @map("a_star") @db.Decimal(8, 4)
+  bStar           Decimal?   @map("b_star") @db.Decimal(8, 4)
+  colorFamily     String?    @map("color_family") @db.VarChar(120)
+  note2           String?    @db.VarChar(500)
+  note3           String?    @db.VarChar(500)
+  status          String     @default("在库") @db.VarChar(20)
+  createdBy       String?    @map("created_by") @db.VarChar(80)
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedBy       String?    @map("updated_by") @db.VarChar(80)
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+  outboundRecords OutboundRecord[]
+
+  @@index([status], map: "idx_residual_status")
+  @@index([inboundDate], map: "idx_residual_inbound")
+  @@map("residual_ink")
+}
+
+model OutboundRecord {
+  id                    BigInt       @id @default(autoincrement())
+  residualInkId         BigInt?      @map("residual_ink_id")
+  outboundDate          DateTime     @map("outbound_date") @db.Date
+  outboundNo            String       @map("outbound_no") @db.VarChar(80)
+  storageLocation       String       @map("storage_location") @db.VarChar(120)
+  rollerColorCode       String?      @map("roller_color_code") @db.VarChar(200)
+  inboundDate           DateTime?    @map("inbound_date") @db.Date
+  weightKg              Decimal?     @map("weight_kg") @db.Decimal(12, 3)
+  lStar                 Decimal?     @map("l_star") @db.Decimal(8, 4)
+  aStar                 Decimal?     @map("a_star") @db.Decimal(8, 4)
+  bStar                 Decimal?     @map("b_star") @db.Decimal(8, 4)
+  deltaE                Decimal?     @map("delta_e") @db.Decimal(10, 4)
+  colorFamily           String?      @map("color_family") @db.VarChar(120)
+  note2                 String?      @db.VarChar(500)
+  note3                 String?      @db.VarChar(500)
+  importedHistorical    Boolean      @default(false) @map("imported_historical")
+  createdBy             String?      @map("created_by") @db.VarChar(80)
+  createdAt             DateTime     @default(now()) @map("created_at")
+  residualInk           ResidualInk? @relation(fields: [residualInkId], references: [id], onDelete: SetNull)
+
+  @@unique([outboundNo, storageLocation], map: "uk_outbound_no_location")
+  @@index([outboundDate], map: "idx_outbound_date")
+  @@index([residualInkId], map: "idx_outbound_inventory")
+  @@map("outbound_record")
+}
+
+model ColorMeasurement {
+  id                 BigInt   @id @default(autoincrement())
+  lStar              Decimal  @map("l_star") @db.Decimal(8, 4)
+  aStar              Decimal  @map("a_star") @db.Decimal(8, 4)
+  bStar              Decimal  @map("b_star") @db.Decimal(8, 4)
+  densityT           Decimal? @map("density_t") @db.Decimal(8, 4)
+  source             String   @db.VarChar(30)
+  instrumentSerial   String?  @map("instrument_serial") @db.VarChar(80)
+  instrumentModel    String?  @map("instrument_model") @db.VarChar(120)
+  measureCondition   String?  @map("measure_condition") @db.VarChar(120)
+  measuredBy         String?  @map("measured_by") @db.VarChar(80)
+  measuredAt         DateTime @default(now()) @map("measured_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@index([measuredAt], map: "idx_measurement_time")
+  @@map("color_measurement")
+}
+
+model ImportJob {
+  id          BigInt   @id @default(autoincrement())
+  fileName    String   @map("file_name") @db.VarChar(255)
+  fileSha256  String   @map("file_sha256") @db.Char(64)
+  mode        String   @db.VarChar(20)
+  inventoryRows Int   @default(0) @map("inventory_rows")
+  outboundRows  Int   @default(0) @map("outbound_rows")
+  importedRows  Int   @default(0) @map("imported_rows")
+  skippedRows   Int   @default(0) @map("skipped_rows")
+  errorRows     Int   @default(0) @map("error_rows")
+  createdBy   String?  @map("created_by") @db.VarChar(80)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt], map: "idx_import_time")
+  @@map("import_job")
+}
+
+model OperationLog {
+  id            BigInt       @id @default(autoincrement())
+  userId        BigInt?      @map("user_id")
+  username      String?      @db.VarChar(80)
+  operationType String       @map("operation_type") @db.VarChar(80)
+  targetTable   String?      @map("target_table") @db.VarChar(80)
+  targetId      String?      @map("target_id") @db.VarChar(120)
+  beforeData    Json?        @map("before_data")
+  afterData     Json?        @map("after_data")
+  ipAddress     String?      @map("ip_address") @db.VarChar(80)
+  remark        String?      @db.VarChar(1000)
+  operationTime DateTime     @default(now()) @map("operation_time")
+  user          UserAccount? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([operationTime], map: "idx_log_time")
+  @@index([operationType], map: "idx_log_type")
+  @@map("operation_log")
+}
+
+model DesktopConfig {
+  configKey   String   @id @map("config_key") @db.VarChar(120)
+  configValue String   @map("config_value") @db.Text
+  description String?  @db.VarChar(300)
+  updatedBy   String?  @map("updated_by") @db.VarChar(80)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("desktop_config")
+}
+
+model BackupJob {
+  id           BigInt    @id @default(autoincrement())
+  jobType      String    @map("job_type") @db.VarChar(20)
+  status       String    @db.VarChar(30)
+  fileName     String?   @map("file_name") @db.VarChar(255)
+  fileSize     BigInt?   @map("file_size")
+  sha256       String?   @db.Char(64)
+  createdBy    String?   @map("created_by") @db.VarChar(80)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  finishedAt   DateTime? @map("finished_at")
+  errorMessage String?   @map("error_message") @db.Text
+
+  @@index([createdAt], map: "idx_backup_time")
+  @@map("backup_job")
+}

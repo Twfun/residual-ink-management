@@ -1,0 +1,41 @@
+# ---- 依赖与缓存 ----
+node_modules/
+.npm-cache/
+.pkg-cache/
+
+# ---- 构建产物 ----
+**/dist/
+apps/web/tsconfig.tsbuildinfo
+
+# ---- Prisma 生成客户端（由 npm run prisma:generate 再生，含平台二进制）----
+apps/api/src/generated/client/
+
+# ---- Tauri / Rust ----
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/binaries/
+apps/desktop/src-tauri/gen/
+
+# ---- 打包外部资源（由 prepare-desktop.mjs 从仓库外复制，不作为源码管理）----
+apps/desktop/src-tauri/resources/database/mariadb/
+apps/desktop/src-tauri/resources/database/schema.sql
+apps/desktop/src-tauri/resources/xrite/
+
+# ---- 安装包 / 可执行文件 ----
+安装包/
+*.exe
+*.msi
+
+# ---- 环境与敏感信息 ----
+.env
+.env.local
+*.local
+
+# ---- 运行数据 / 临时报告 ----
+.standalone-smoke-report.json
+*.log
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

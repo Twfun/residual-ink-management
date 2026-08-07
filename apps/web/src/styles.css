@@ -1,0 +1,583 @@
+/* ============================================================
+   设计 Token —— 与 theme.ts 的 RIM 常量一一对应，改色只改这两处
+   错误语义色直接使用 antd CSS 变量（--ant-color-error*，theme.ts 已开启 cssVar）
+   字号标尺：12 / 13 / 14 / 16 / 20 / 24
+   圆角标尺：6（基础）/ 8（卡片）
+   间距标尺：4 的倍数
+   ============================================================ */
+:root {
+  --rim-primary: #16796d;
+  --rim-primary-dark: #062f2c;
+  --rim-primary-bg: #e4f3ee;
+  --rim-primary-border: #9ed1c0;
+  --rim-bg: #f3f6f7;
+  --rim-text: #1d2e35;
+  --rim-text-secondary: #698087;
+  --rim-text-tertiary: #9aa8ab;
+  --rim-border: #c6cecf;
+  --rim-border-light: #e8eef0;
+  --rim-border-strong: #b7c6c8;
+  --rim-card-shadow: 0 1px 2px rgba(6, 47, 44, 0.05);
+
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  color: var(--rim-text);
+  background: var(--rim-bg);
+}
+body {
+  margin: 0;
+  background: var(--rim-bg);
+}
+
+/* ---------- 桌面服务启动门（ServiceGate） ---------- */
+.service-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rim-bg);
+  padding: 24px;
+}
+.service-gate-panel {
+  width: min(680px, 100%);
+}
+.service-gate-log {
+  max-height: 240px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--rim-border);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ---------- 布局骨架 ---------- */
+.rim-shell {
+  height: 100vh;
+  overflow: hidden;
+}
+.enterprise-sider {
+  border-right: 1px solid var(--rim-border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.rim-brand {
+  height: 72px;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--rim-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rim-sider-logo {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.rim-brand > span {
+  min-width: 0;
+  overflow: hidden;
+}
+.rim-brand b {
+  display: block;
+  font-size: 16px;
+}
+.rim-brand small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--rim-text-secondary);
+}
+.enterprise-sider .ant-menu {
+  border-inline-end: 0;
+  padding: 8px;
+}
+.enterprise-sider .ant-menu .ant-menu-item {
+  margin-inline: 0;
+  width: 100%;
+  border-radius: 6px;
+  font-size: 16.5px;
+}
+.enterprise-sider .ant-menu .ant-menu-item .ant-menu-item-icon {
+  font-size: 16.5px;
+}
+.enterprise-sider .ant-layout-sider-trigger {
+  border-top: 1px solid var(--rim-border);
+  background: #f4f8f8;
+  color: #74868b;
+}
+.enterprise-sider .ant-layout-sider-trigger:hover {
+  background: #e7f0ef;
+  color: #16796d;
+}
+.enterprise-sider.ant-layout-sider-collapsed .rim-brand {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+.enterprise-sider.ant-layout-sider-collapsed .rim-brand > span {
+  display: none;
+}
+.enterprise-sider.ant-layout-sider-collapsed .ant-menu {
+  padding-inline: 8px;
+}
+.enterprise-sider.ant-layout-sider-collapsed .ant-menu .ant-menu-item {
+  padding-inline: 0;
+  display: flex;
+  justify-content: center;
+}
+.enterprise-sider.ant-layout-sider-collapsed .ant-menu .ant-menu-item .ant-menu-item-icon {
+  margin-inline-end: 0;
+  font-size: 20px;
+}
+.enterprise-topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--rim-border);
+}
+.enterprise-topbar .ant-typography {
+  margin: 0;
+  font-size: 20px;
+}
+.enterprise-content {
+  padding: 20px 28px;
+  overflow-y: auto;
+  height: calc(100vh - 72px);
+}
+.enterprise-page-shell {
+  max-width: 1640px;
+  margin: 0 auto;
+}
+.rim-keepalive-page {
+  height: 100%;
+}
+
+/* ---------- 指标卡 ---------- */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.ant-card {
+  box-shadow: var(--rim-card-shadow);
+}
+.metric-card .ant-statistic-title {
+  font-weight: 500;
+  color: var(--rim-text-secondary);
+}
+.metric-card .ant-statistic-content {
+  font-size: 24px;
+  color: var(--rim-primary-dark);
+}
+
+/* ---------- 通用布局工具 ---------- */
+.two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.page-toolbar .ant-card-body {
+  padding: 12px 16px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 0;
+  color: var(--rim-text-secondary);
+  flex: 1;
+}
+.empty-state .anticon {
+  font-size: 24px;
+}
+
+/* ---------- 库存 Excel 风格表格 ---------- */
+.excel-grid-card .ant-card-body {
+  padding: 0;
+}
+.excel-style-table .ant-table-thead > tr > th {
+  font-weight: 600;
+  white-space: nowrap;
+  border-color: var(--rim-border-strong);
+}
+.excel-style-table .ant-table-tbody > tr > td {
+  white-space: nowrap;
+  border-color: var(--rim-border);
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.excel-style-table .ant-table-tbody .ant-table-cell-fix-right {
+  background: #fff;
+  border-left: 2px solid var(--rim-border-strong);
+}
+.excel-style-table .ant-table-thead .ant-table-cell-fix-right {
+  background: var(--rim-primary-bg);
+}
+.import-preview {
+  border-color: var(--rim-primary-border);
+  background: var(--rim-primary-bg);
+}
+.stats-total-row td,
+.ant-table-summary .stats-total-row td {
+  font-weight: 600;
+  background: var(--rim-primary-bg);
+}
+
+/* ---------- 颜色匹配表单 ---------- */
+.match-form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 16px;
+  align-items: flex-end;
+}
+.match-form-inline .ant-form-item {
+  margin-inline-end: 16px;
+  margin-bottom: 0;
+}
+.match-form-inline .match-actions {
+  margin-inline-end: 0;
+  margin-left: auto;
+}
+.match-form-inline .match-actions .ant-space {
+  gap: 8px;
+}
+
+/* ---------- 出库 ---------- */
+.outbound-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--rim-border-light);
+}
+
+/* ---------- 登录页 ---------- */
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(430px, 0.82fr);
+  background: var(--rim-bg);
+}
+.login-visual {
+  position: relative;
+  overflow: hidden;
+  background: var(--rim-primary-dark);
+}
+.login-visual-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+}
+.login-visual-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(4, 42, 39, 0.18), rgba(4, 42, 39, 0.02) 48%, rgba(4, 42, 39, 0.3));
+}
+.login-brand {
+  position: absolute;
+  top: 32px;
+  left: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+.login-brand img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+.login-arcs {
+  position: absolute;
+  top: -150px;
+  right: -130px;
+  width: 430px;
+  height: 430px;
+  border-radius: 50%;
+  border: 1px solid rgba(126, 214, 190, 0.28);
+  box-shadow:
+    0 0 0 26px rgba(126, 214, 190, 0.07),
+    0 0 0 58px rgba(126, 214, 190, 0.05),
+    0 0 0 96px rgba(126, 214, 190, 0.035);
+  pointer-events: none;
+}
+.login-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+.login-dots {
+  position: absolute;
+  top: 44px;
+  right: 56px;
+  width: 84px;
+  height: 56px;
+  background-image: radial-gradient(var(--rim-border-strong) 2.4px, transparent 2.7px);
+  background-size: 18px 18px;
+}
+.login-card {
+  width: min(430px, 100%);
+  background: #fff;
+  border: 1px solid var(--rim-border-light);
+  border-radius: 8px;
+  box-shadow: 0 16px 44px rgba(6, 47, 44, 0.09);
+  padding: 40px 36px 32px;
+}
+.login-card h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.login-card > p {
+  margin: 0 0 24px;
+  color: var(--rim-text-secondary);
+  font-size: 14px;
+}
+.login-card .ant-input-affix-wrapper,
+.login-card .ant-input {
+  border-radius: 6px;
+}
+.login-card .ant-btn-primary {
+  height: 48px;
+  font-size: 16px;
+  letter-spacing: 4px;
+  border-radius: 6px;
+}
+.login-remember-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin: -4px 0 16px;
+}
+.login-remember-hint {
+  color: var(--rim-text-tertiary);
+}
+.login-clear-link {
+  color: var(--rim-text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.login-clear-link:hover {
+  color: var(--rim-primary);
+}
+.login-footer {
+  position: absolute;
+  bottom: 24px;
+  right: 40px;
+  font-size: 12px;
+  color: var(--rim-text-tertiary);
+}
+
+/* ---------- 图表 ---------- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.chart-card .ant-card-body {
+  padding-top: 8px;
+  height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ---------- 仪器测量弹窗 ---------- */
+.measure-error {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--ant-color-error-bg);
+  border: 1px solid var(--ant-color-error-border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.measure-error-icon {
+  color: var(--ant-color-error);
+  font-size: 16px;
+  margin-top: 2px;
+}
+.measure-error-title {
+  font-weight: 600;
+  color: var(--ant-color-error);
+}
+.measure-error-detail {
+  color: var(--ant-color-error-text);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.measure-body {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+.measure-swatch-col {
+  flex: 0 0 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.color-swatch {
+  width: 100%;
+  height: 72px;
+  border-radius: 6px;
+  border: 1px solid var(--rim-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.color-swatch-idle {
+  background: var(--rim-bg);
+  color: var(--rim-text-tertiary);
+}
+.measure-swatch-caption {
+  font-size: 12px;
+  color: var(--rim-text-secondary);
+  text-align: center;
+}
+.measure-status-table {
+  flex: 1;
+  border: 1px solid var(--rim-border);
+  border-radius: 6px;
+  overflow: hidden;
+  align-self: flex-start;
+  width: 100%;
+}
+.measure-status-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.measure-status-row + .measure-status-row {
+  border-top: 1px solid var(--rim-border-light);
+}
+.measure-status-row > span:first-child {
+  color: var(--rim-text-secondary);
+}
+.measure-guide-text {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+.measure-options {
+  margin-top: 12px;
+}
+.measure-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.lab-measure-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: -8px;
+  color: var(--rim-text-secondary);
+  font-size: 12px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .metric-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .two-columns,
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+  .login-screen {
+    grid-template-columns: 1fr;
+  }
+  .login-visual {
+    min-height: 300px;
+  }
+  .login-panel {
+    padding: 36px 20px 72px;
+  }
+  .enterprise-content {
+    padding: 16px;
+  }
+  .enterprise-topbar {
+    padding: 0 16px;
+  }
+  .enterprise-topbar .ant-typography {
+    font-size: 16px;
+  }
+}
+@media (max-width: 560px) {
+  .metric-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .enterprise-sider {
+    display: none;
+  }
+  .enterprise-content {
+    padding: 12px;
+  }
+  .enterprise-topbar {
+    padding: 0 12px;
+  }
+  .login-card {
+    padding: 32px 24px 24px;
+  }
+  .login-footer {
+    right: 50%;
+    transform: translateX(50%);
+    white-space: nowrap;
+  }
+}
+/* 列表边框对比度提升约 10%：antd 表格默认分隔线 (#f0f0f0) 加深 */
+.ant-table:not(.excel-style-table) .ant-table-thead > tr > th,
+.ant-table:not(.excel-style-table) .ant-table-tbody > tr > td {
+  border-color: #d8d8d8;
+}
+/* 最近删除下拉面板 */
+.deleted-panel { width: 380px; max-height: 420px; overflow-y: auto; background: #fff; border-radius: 8px; box-shadow: 0 6px 24px rgba(6,47,44,.14); padding: 8px; }
+.deleted-panel-title { font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--rim-border); margin-bottom: 4px; }
+.deleted-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 6px; }
+.deleted-row:hover { background: #f4f8f8; }
+.deleted-row-main { display: flex; flex-direction: column; }
+.deleted-row-main small { color: var(--rim-text-secondary); }
