@@ -71,6 +71,54 @@ fn installation_dir() -> PathBuf {
         .unwrap_or_else(std::env::temp_dir)
 }
 
+/// One-time migration: earlier builds kept the runtime under
+/// %LOCALAPPDATA%\ResidualInkManagementRuntime. Adopt that database when the
+/// install-directory runtime has none of its own yet.
+fn migrate_legacy_runtime(runtime: &Path) {
+    let Some(local) = std::env::var_os("LOCALAPPDATA") else {
+        return;
+    };
+    let legacy_root = PathBuf::from(local)
+        .join("ResidualInkManagementRuntime")
+        .join("data");
+    if legacy_root == runtime {
+        return;
+    }
+    let legacy_db = legacy_root.join("database").join("embedded-mariadb");
+    let current_db = runtime.join("database").join("embedded-mariadb");
+    if !legacy_db.join("data").join("mysql").is_dir() || current_db.join("data").join("mysql").is_dir() {
+        return;
+    }
+    log_event("INFO", "migrating legacy database into the installation directory");
+    match copy_dir_recursive(&legacy_db, &current_db) {
+        Ok(()) => log_event("INFO", "legacy database migration finished"),
+        Err(error) => log_event("ERROR", &format!("legacy database migration failed: {error}")),
+    }
+    let legacy_secret = legacy_root.join("jwt.secret");
+    let current_secret = runtime.join("jwt.secret");
+    if legacy_secret.is_file() && !current_secret.is_file() {
+        let _ = fs::copy(&legacy_secret, &current_secret);
+    }
+    let legacy_backups = legacy_root.join("backups");
+    if legacy_backups.is_dir() {
+        let _ = copy_dir_recursive(&legacy_backups, &runtime.join("backups"));
+    }
+}
+
+fn copy_dir_recursive(from: &Path, to: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(to)?;
+    for entry in fs::read_dir(from)? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir_recursive(&entry.path(), &target)?;
+        } else {
+            fs::copy(entry.path(), &target)?;
+        }
+    }
+    Ok(())
+}
+
 fn log_directory() -> PathBuf {
     runtime_root().join("logs")
 }
@@ -378,6 +426,7 @@ fn start_local_services(app: &AppHandle, state: &RuntimeState) -> Result<(), Str
     fs::create_dir_all(&logs).map_err(|error| error.to_string())?;
     fs::create_dir_all(&backups).map_err(|error| error.to_string())?;
     log_event("INFO", &format!("runtime directory: {}", runtime.display()));
+    migrate_legacy_runtime(&runtime);
 
     let database_resources = resource_root(app)?.join("resources").join("database");
     let maria = database_resources.join("mariadb");

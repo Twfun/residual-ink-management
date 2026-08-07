@@ -81,7 +81,6 @@ export function MeasureModal({
       title="测量当前油墨调合色"
       onCancel={onCancel}
       footer={null}
-      maskClosable={false}
       width={440}
       destroyOnHidden
     >
