@@ -43,17 +43,31 @@ export function labToCss(lab: Lab) {
 }
 
 export function extractMeasuredLab(response: any): Lab | null {
-  const candidate = response?.measurement?.lab?.M0 ?? response?.measurement?.Lab ?? response?.lab;
-  if (candidate && typeof candidate === 'object') {
-    const l = Number(candidate.L ?? candidate.l ?? candidate.lStar);
-    const a = Number(candidate.a ?? candidate.aStar);
-    const b = Number(candidate.b ?? candidate.bStar);
-    if ([l, a, b].every(Number.isFinite)) return { l, a, b };
+  // The bridge reports Lab per measurement condition; always prefer the
+  // instrument's currently active condition (matches the reference app).
+  const labMap = response?.measurement?.lab;
+  const active = String(response?.metadata?.activeCondition ?? '')
+    .trim()
+    .toUpperCase();
+  const candidates: unknown[] = [];
+  if (labMap && typeof labMap === 'object') {
+    if (active) candidates.push(labMap[active]);
+    for (const key of ['M0', 'M1', 'M2', 'M3']) candidates.push(labMap[key]);
   }
-  if (typeof candidate === 'string') {
-    const values = candidate.match(/[-+]?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-    if (values.length >= 3 && values.slice(0, 3).every(Number.isFinite)) {
-      return { l: values[0], a: values[1], b: values[2] };
+  candidates.push(response?.measurement?.Lab, response?.lab);
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'object') {
+      const source = candidate as Record<string, unknown>;
+      const l = Number(source.L ?? source.l ?? source.lStar);
+      const a = Number(source.a ?? source.aStar);
+      const b = Number(source.b ?? source.bStar);
+      if ([l, a, b].every(Number.isFinite)) return { l, a, b };
+    }
+    if (typeof candidate === 'string') {
+      const values = candidate.match(/[-+]?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+      if (values.length >= 3 && values.slice(0, 3).every(Number.isFinite)) {
+        return { l: values[0], a: values[1], b: values[2] };
+      }
     }
   }
   return null;
@@ -79,18 +93,28 @@ export function parseXriteMeasurement(response: any): XriteMeasurement | null {
   const lab = extractMeasuredLab(response);
   if (!lab) return null;
   const instrument = response?.instrument ?? response?.device ?? {};
+  const densityRaw = response?.measurement?.density;
   const densityCandidate = response?.measurement?.density?.T ?? response?.measurement?.densityT ?? response?.densityT;
+  const densityFromText =
+    typeof densityRaw === 'string'
+      ? (densityRaw
+          .replace(',', '.')
+          .match(/[-+]?\d+(?:\.\d+)?/g)
+          ?.map(Number)
+          .find((value) => Number.isFinite(value) && value >= 0) ?? null)
+      : null;
   const densityT =
-    Number.isFinite(Number(densityCandidate)) &&
+    densityFromText ??
+    (Number.isFinite(Number(densityCandidate)) &&
     densityCandidate !== null &&
     densityCandidate !== undefined &&
     densityCandidate !== ''
       ? Number(densityCandidate)
-      : null;
+      : null);
   return {
     ...lab,
     densityT,
-    measureCondition: pickText(response?.measurement?.condition, response?.measureCondition, response?.condition),
+    measureCondition: pickText(response?.metadata?.activeCondition, response?.measurement?.condition, response?.measureCondition, response?.condition),
     instrumentModel: pickText(instrument.model, response?.model),
     instrumentSerial: pickText(instrument.serial, instrument.serialNumber, response?.serial),
     raw: response,
