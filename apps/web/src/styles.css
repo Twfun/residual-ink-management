@@ -194,6 +194,13 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 0 16px;
 }
+.form-section {
+  margin-bottom: 20px;
+}
+.form-section + .form-section {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+}
 .toolbar-actions {
   margin-left: auto;
   display: flex;
@@ -259,7 +266,6 @@ body {
 }
 .match-form-inline .match-actions {
   margin-inline-end: 0;
-  margin-left: auto;
 }
 .match-form-inline .match-actions .ant-space {
   gap: 8px;

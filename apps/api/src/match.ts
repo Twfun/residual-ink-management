@@ -42,10 +42,23 @@ export class MatchService {
         bStar: { not: null },
         ...(colorFamily ? { colorFamily } : {}),
       },
+      include: {
+        formula: { select: { versionNo: true, productColor: { select: { name: true } } } },
+        product: { select: { code: true, name: true } },
+      },
     });
     let matches = rows.map((row) => ({
       id: row.id.toString(),
       storageLocation: row.storageLocation,
+      source:
+        row.formula || row.product
+          ? {
+              productCode: row.product?.code ?? null,
+              productName: row.product?.name ?? null,
+              colorName: row.formula?.productColor?.name ?? null,
+              versionNo: row.formula?.versionNo ?? null,
+            }
+          : null,
       rollerColorCode: row.rollerColorCode,
       inboundDate: row.inboundDate,
       weightKg: row.weightKg === null ? null : Number(row.weightKg),

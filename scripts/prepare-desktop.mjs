@@ -68,6 +68,8 @@ const idempotentSchema = schema
 const manualMigrations = [
   'ALTER TABLE `color_measurement` ADD COLUMN IF NOT EXISTS `deleted_at` DATETIME(3) NULL;',
   'ALTER TABLE `residual_ink` ADD COLUMN IF NOT EXISTS `deleted_at` DATETIME(3) NULL;',
+  'ALTER TABLE `residual_ink` ADD COLUMN IF NOT EXISTS `formula_id` BIGINT NULL;',
+  'ALTER TABLE `residual_ink` ADD COLUMN IF NOT EXISTS `product_id` BIGINT NULL;',
 ].join('\n');
 await writeFile(
   resolve(databaseDir, 'schema.sql'),

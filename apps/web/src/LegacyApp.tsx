@@ -30,6 +30,7 @@ import {
   AuditOutlined,
   BarChartOutlined,
   BgColorsOutlined,
+  BookOutlined,
   CloudServerOutlined,
   DashboardOutlined,
   DeleteOutlined,
@@ -51,7 +52,9 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import zhCN from 'antd/locale/zh_CN';
+import { api, API } from './api';
 import { EChart } from './components/EChart';
+import { FormulasPage } from './FormulaPages';
 import { MeasureModal } from './components/MeasureModal';
 import { PantoneLibraryModal } from './components/PantoneLibraryModal';
 import { EmptyState, MetricCard } from './components/ui';
@@ -75,7 +78,7 @@ import {
 
 dayjs.locale('zh-cn');
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:39080/api';
+
 type User = {
   id: string;
   username: string;
@@ -84,22 +87,18 @@ type User = {
   permissions: string[];
   mustChangePassword: boolean;
 };
-type PageKey = 'dashboard' | 'match' | 'inventory' | 'outbound' | 'statistics' | 'users' | 'backup' | 'logs';
+type PageKey =
+  | 'dashboard'
+  | 'match'
+  | 'formulas'
+  | 'inventory'
+  | 'outbound'
+  | 'statistics'
+  | 'users'
+  | 'backup'
+  | 'logs';
 type Inventory = Record<string, any> & { id: string; storageLocation: string; weightKg: number | null; status: string };
 
-async function api<T>(path: string, options: RequestInit = {}, token?: string | null) {
-  const response = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  const value = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(value.message || '请求失败。');
-  return value as T;
-}
 
 async function downloadExcel(path: string, params: Record<string, unknown>, token: string) {
   const query = new URLSearchParams();
@@ -130,6 +129,7 @@ const labels = Object.fromEntries(PAGE_CONTRACT.map(([key, label]) => [key, labe
 const pages: Array<[PageKey, string, string, React.ReactNode]> = [
   ['dashboard', labels.dashboard, 'dashboard.view', <DashboardOutlined />],
   ['match', labels.match, 'match.view', <BgColorsOutlined />],
+  ['formulas', labels.formulas, 'formula.view', <BookOutlined />],
   ['inventory', labels.inventory, 'inventory.view', <DatabaseOutlined />],
   ['outbound', labels.outbound, 'outbound.view', <ExportOutlined />],
   ['statistics', labels.statistics, 'dashboard.view', <BarChartOutlined />],
@@ -257,6 +257,7 @@ export default function LegacyApp() {
                       </ConfigProvider>
                     )}
                     {key === 'match' && <Match token={token} rights={user.permissions} />}
+                    {key === 'formulas' && <FormulasPage token={token} rights={user.permissions} />}
                     {key === 'inventory' && <InventoryPage token={token} rights={user.permissions} />}
                     {key === 'outbound' && <OutboundPage token={token} rights={user.permissions} />}
                     {key === 'statistics' && <StatisticsPage token={token} />}
@@ -490,8 +491,7 @@ function locationRankOption(rows: Array<{ storageLocation: string; weightKg: num
 
 function Dashboard({ token }: { token: string }) {
   const [data, setData] = useState<any>();
-  const [inventoryPeriod, setInventoryPeriod] = useState<string>('all');
-  const [outboundPeriod, setOutboundPeriod] = useState<string>('all');
+  const [period, setPeriod] = useState<string>('all');
   const [inDimension, setInDimension] = useState<DimensionKey>('day');
   const [outDimension, setOutDimension] = useState<DimensionKey>('day');
   const [inBuckets, setInBuckets] = useState<SeriesBucket[]>([]);
@@ -501,13 +501,12 @@ function Dashboard({ token }: { token: string }) {
   const [locationRank, setLocationRank] = useState<Array<{ storageLocation: string; weightKg: number }>>([]);
   useEffect(() => {
     const params = new URLSearchParams();
-    if (inventoryPeriod !== 'all') params.set('inventoryPeriod', inventoryPeriod);
-    if (outboundPeriod !== 'all') params.set('outboundPeriod', outboundPeriod);
+    if (period !== 'all') params.set('period', period);
     const query = params.size ? '?' + params.toString() : '';
     api('/dashboard' + query, {}, token)
       .then(setData)
       .catch((error) => console.error('dashboard load failed', error));
-  }, [token, inventoryPeriod, outboundPeriod]);
+  }, [token, period]);
   useEffect(() => {
     api(`/dashboard/series?dimension=${inDimension}`, {}, token).then((result: any) =>
       setInBuckets(result.buckets ?? []),
@@ -525,16 +524,31 @@ function Dashboard({ token }: { token: string }) {
   }, [token]);
   if (!data) return <Card loading />;
   const s = data.statistics;
-  const periodSwitch = (value: string, onChange: (next: string) => void) => (
-    <Segmented size="small" value={value} onChange={(next) => onChange(next as string)} options={PERIOD_OPTIONS} />
-  );
+  const periodLabel = PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? '全部';
+  const scoped = (allLabel: string, scopedLabel: string) =>
+    period === 'all' ? allLabel : `${periodLabel}${scopedLabel}`;
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Card className="page-toolbar">
+        <Space wrap size={8}>
+          <span>统计周期</span>
+          <Segmented
+            size="small"
+            value={period}
+            onChange={(value) => setPeriod(value as string)}
+            options={PERIOD_OPTIONS}
+          />
+        </Space>
+      </Card>
       <div className="metric-grid">
-        <MetricCard title="在库条数" value={s.inStockCount} />
-        <MetricCard title="已知重量合计" value={s.knownWeightKg ?? '—'} suffix={s.knownWeightKg === null ? '' : 'kg'} />
-        <MetricCard title="未知重量条数" value={s.unknownWeightCount} />
-        <MetricCard title="本月出库单 / 明细" value={`${s.monthlyOutboundOrders} / ${s.monthlyOutboundLines}`} />
+        <MetricCard title={scoped('在库条数', '入库·在库条数')} value={s.inStockCount} />
+        <MetricCard
+          title={scoped('已知重量合计', '入库·已知重量')}
+          value={s.knownWeightKg ?? '—'}
+          suffix={s.knownWeightKg === null ? '' : 'kg'}
+        />
+        <MetricCard title={scoped('未知重量条数', '入库·未知重量条数')} value={s.unknownWeightCount} />
+        <MetricCard title={scoped('出库单 / 明细', '出库单 / 明细')} value={`${s.outboundOrders} / ${s.outboundLines}`} />
       </div>
       <div className="two-columns">
         <Card
@@ -626,13 +640,13 @@ function Dashboard({ token }: { token: string }) {
       <div className="two-columns">
         <SimpleTable
           title="最近库存"
-          extra={periodSwitch(inventoryPeriod, setInventoryPeriod)}
+          extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
           rows={data.recentInventory}
           columns={['storageLocation', 'weightKg', 'colorFamily', 'createdAt']}
         />
         <SimpleTable
           title="最近出库"
-          extra={periodSwitch(outboundPeriod, setOutboundPeriod)}
+          extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
           rows={data.recentOutbound}
           columns={['outboundNo', 'storageLocation', 'weightKg', 'outboundDate']}
         />
@@ -751,6 +765,17 @@ function Match({ token, rights }: { token: string; rights: string[] }) {
       message.error(error instanceof Error ? error.message : '保存测量记录失败。');
     }
   };
+  // 清空目标颜色输入表单（Lab、色差、色系、公式等），不影响匹配结果
+  const clearTargetForm = () => {
+    form.resetFields();
+    message.success('目标颜色已清空。');
+  };
+  // 清空颜色匹配结果表，不影响目标颜色输入
+  const clearMatchResult = () => {
+    setResult(undefined);
+    setLastSearch(null);
+    message.success('颜色匹配结果已清空。');
+  };
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card title="目标颜色">
@@ -788,6 +813,7 @@ function Match({ token, rights }: { token: string; rights: string[] }) {
               </Button>
               <Button onClick={() => setMeasureOpen(true)}>测量(M)</Button>
               <Button onClick={() => setPantoneOpen(true)}>色库</Button>
+              <Button onClick={clearTargetForm}>清空</Button>
             </Space>
           </Form.Item>
         </Form>
@@ -868,9 +894,11 @@ function Match({ token, rights }: { token: string; rights: string[] }) {
       {result && (
         <SimpleTable
           title={`颜色匹配结果（${result.formula ?? 'CIE94'} · 命中 ${result.matchCount ?? result.matches?.length ?? 0} / 在库 ${result.availableCount} 条）`}
+          extra={<Button size="small" onClick={clearMatchResult}>清空</Button>}
           rows={result.matches}
           columns={[
             'storageLocation',
+            { title: '复用来源', key: 'source', width: 240, render: (_: unknown, row: any) => sourceTag(row) },
             'rollerColorCode',
             'weightKg',
             'lStar',
@@ -1092,7 +1120,19 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
   useEffect(() => {
     load();
   }, []);
-  const cols = INVENTORY_COLUMNS.map(([key, title]) => ({ title, dataIndex: key, width: 132, render: print }));
+  const cols: any[] = INVENTORY_COLUMNS.map(([key, title]) => ({
+    title,
+    dataIndex: key,
+    width: 132,
+    render: print,
+    ...(key === 'storageLocation' || key === 'rollerColorCode' ? { fixed: 'left' as const } : {}),
+  }));
+  cols.splice(1, 0, {
+    title: '来源配方',
+    key: 'source',
+    width: 220,
+    render: (_: unknown, row: any) => sourceTag(row),
+  });
   cols.push({
     title: '操作',
     key: 'action',
@@ -2099,7 +2139,7 @@ function SimpleTable({
 }: {
   title: string;
   rows: any[];
-  columns: string[];
+  columns: Array<string | Record<string, unknown>>;
   extra?: ReactNode;
   appendColumns?: any[];
 }) {
@@ -2112,13 +2152,24 @@ function SimpleTable({
         scroll={{ x: true }}
         locale={{ emptyText: <EmptyState text="暂无记录" /> }}
         columns={[
-          ...columns.map((dataIndex) => ({ title: FIELD_LABELS[dataIndex] ?? dataIndex, dataIndex, render: print })),
+          ...columns.map((column) =>
+            typeof column === 'string' ? { title: FIELD_LABELS[column] ?? column, dataIndex: column, render: print } : column),
           ...(appendColumns ?? []),
         ]}
       />
     </Card>
   );
 }
+function sourceTag(row: any) {
+  const source = row.source;
+  if (!source) return '';
+  const parts = [
+    source.productName ?? source.productCode,
+    source.colorName ? `${source.colorName}${source.versionNo ? ` V${source.versionNo}` : ''}` : null,
+  ].filter(Boolean);
+  return <Tag color="cyan">可复用余墨{parts.length ? ` · ${parts.join(' / ')}` : ''}</Tag>;
+}
+
 function print(value: any) {
   if (value === null || value === undefined) return '';
   if (typeof value === 'boolean') return value ? '是' : '否';

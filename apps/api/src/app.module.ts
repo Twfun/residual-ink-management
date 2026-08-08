@@ -8,6 +8,7 @@ import { BackupController, BackupService } from './backup';
 import { JsonSafeInterceptor, Public } from './common';
 import { DashboardController, DashboardService } from './dashboard';
 import { ExcelExportController, ExcelExportService, ExcelImportController, ExcelImportService } from './excel';
+import { AdjustmentsController, FormulasController, FormulaService, MaterialsController, ProductColorsController, ProductsController } from './formula';
 import { JwtAuthGuard, PermissionsGuard } from './guards';
 import { InventoryController, InventoryService } from './inventory';
 import { MatchController, MatchService } from './match';
@@ -20,7 +21,7 @@ class HealthController {
   @Public()
   @Get()
   health() {
-    return { ok: true, product: 'Residual Ink Management', version: '1.0.0' };
+    return { ok: true, product: 'Residual Ink Management', version: '1.3.0' };
   }
 }
 
@@ -43,6 +44,11 @@ class HealthController {
     StatisticsController,
     AdministrationController,
     BackupController,
+    ProductsController,
+    ProductColorsController,
+    MaterialsController,
+    FormulasController,
+    AdjustmentsController,
   ],
   providers: [
     PrismaService,
@@ -57,6 +63,7 @@ class HealthController {
     StatisticsService,
     AdministrationService,
     BackupService,
+    FormulaService,
     JwtAuthGuard,
     PermissionsGuard,
     { provide: APP_GUARD, useExisting: JwtAuthGuard },

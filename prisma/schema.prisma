@@ -88,9 +88,16 @@ model ResidualInk {
   updatedAt       DateTime   @updatedAt @map("updated_at")
   deletedAt       DateTime?  @map("deleted_at")
   outboundRecords OutboundRecord[]
+  formulaId      BigInt?    @map("formula_id")
+  productId      BigInt?    @map("product_id")
+  formula        Formula?   @relation(fields: [formulaId], references: [id], onDelete: SetNull)
+  product        Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  adjustments    FormulaAdjustment[]
 
   @@index([status], map: "idx_residual_status")
   @@index([inboundDate], map: "idx_residual_inbound")
+  @@index([formulaId], map: "idx_residual_formula")
+  @@index([productId], map: "idx_residual_product")
   @@map("residual_ink")
 }
 
@@ -199,4 +206,150 @@ model BackupJob {
 
   @@index([createdAt], map: "idx_backup_time")
   @@map("backup_job")
+}
+
+model Product {
+  id            BigInt         @id @default(autoincrement())
+  code          String         @unique @db.VarChar(80)
+  formulaNo     String?        @map("formula_no") @db.VarChar(80)
+  archiveDate   DateTime?      @map("archive_date")
+  name          String         @db.VarChar(200)
+  customerName  String?        @map("customer_name") @db.VarChar(200)
+  specification String?        @db.VarChar(200)
+  substrate     String?        @db.VarChar(200)
+  processNote   String?        @map("process_note") @db.VarChar(1000)
+  status        String         @default("启用") @db.VarChar(20)
+  createdBy     String?        @map("created_by") @db.VarChar(80)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedBy     String?        @map("updated_by") @db.VarChar(80)
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  colors        ProductColor[]
+  residualInks  ResidualInk[]
+
+  @@index([formulaNo], map: "idx_product_formula_no")
+  @@map("product")
+}
+
+model ProductColor {
+  id                   BigInt     @id @default(autoincrement())
+  productId            BigInt     @map("product_id")
+  name                 String     @db.VarChar(120)
+  colorCode            String?    @map("color_code") @db.VarChar(80)
+  printOrder           Int?       @map("print_order")
+  targetColorData      Json?      @map("target_color_data")
+  targetViscosity      Decimal?   @map("target_viscosity") @db.Decimal(8, 2)
+  viscosityUnit        String     @default("s") @map("viscosity_unit") @db.VarChar(10)
+  viscosityMethod      String?    @map("viscosity_method") @db.VarChar(120)
+  viscosityTemperature Decimal?   @map("viscosity_temperature") @db.Decimal(6, 2)
+  remark               String?    @db.VarChar(1000)
+  status               String     @default("启用") @db.VarChar(20)
+  createdBy            String?    @map("created_by") @db.VarChar(80)
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedBy            String?    @map("updated_by") @db.VarChar(80)
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+  product              Product    @relation(fields: [productId], references: [id])
+  formulas             Formula[]
+
+  @@index([productId], map: "idx_product_color_product")
+  @@map("product_color")
+}
+
+model Material {
+  id                   BigInt        @id @default(autoincrement())
+  code                 String        @unique @db.VarChar(80)
+  name                 String        @db.VarChar(200)
+  materialType         String        @map("material_type") @db.VarChar(20)
+  colorFamily          String?       @map("color_family") @db.VarChar(120)
+  manufacturer         String?       @db.VarChar(200)
+  brand                String?       @db.VarChar(120)
+  series               String?       @db.VarChar(120)
+  defaultViscosity     Decimal?      @map("default_viscosity") @db.Decimal(8, 2)
+  viscosityUnit        String        @default("s") @map("viscosity_unit") @db.VarChar(10)
+  viscosityMethod      String?       @map("viscosity_method") @db.VarChar(120)
+  viscosityTemperature Decimal?      @map("viscosity_temperature") @db.Decimal(6, 2)
+  density              Decimal?      @db.Decimal(8, 4)
+  unitCost             Decimal?      @map("unit_cost") @db.Decimal(12, 4)
+  isDefaultSolvent     Boolean       @default(false) @map("is_default_solvent")
+  status               String        @default("启用") @db.VarChar(20)
+  remark               String?       @db.VarChar(1000)
+  createdBy            String?       @map("created_by") @db.VarChar(80)
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedBy            String?       @map("updated_by") @db.VarChar(80)
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  formulaItems         FormulaItem[]
+
+  @@index([materialType], map: "idx_material_type")
+  @@index([name], map: "idx_material_name")
+  @@map("material")
+}
+
+model Formula {
+  id                   BigInt              @id @default(autoincrement())
+  productColorId       BigInt              @map("product_color_id")
+  versionNo            Int                 @map("version_no")
+  status               String              @default("draft") @db.VarChar(20)
+  basisType            String              @default("份数") @map("basis_type") @db.VarChar(10)
+  targetViscosity      Decimal?            @map("target_viscosity") @db.Decimal(8, 2)
+  viscosityUnit        String              @default("s") @map("viscosity_unit") @db.VarChar(10)
+  viscosityMethod      String?             @map("viscosity_method") @db.VarChar(120)
+  viscosityTemperature Decimal?            @map("viscosity_temperature") @db.Decimal(6, 2)
+  applicableConditions Json?               @map("applicable_conditions")
+  changeReason         String?             @map("change_reason") @db.VarChar(1000)
+  remark               String?             @db.VarChar(1000)
+  createdBy            String?             @map("created_by") @db.VarChar(80)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  publishedBy          String?             @map("published_by") @db.VarChar(80)
+  publishedAt          DateTime?           @map("published_at")
+  productColor         ProductColor        @relation(fields: [productColorId], references: [id])
+  items                FormulaItem[]
+  adjustments          FormulaAdjustment[] @relation("adjustment_formula")
+  promotedFrom         FormulaAdjustment[] @relation("promoted_formula")
+  residualInks         ResidualInk[]
+
+  @@unique([productColorId, versionNo], map: "uk_formula_version")
+  @@index([productColorId, status], map: "idx_formula_color_status")
+  @@map("formula")
+}
+
+model FormulaItem {
+  id                   BigInt   @id @default(autoincrement())
+  formulaId            BigInt   @map("formula_id")
+  materialId           BigInt   @map("material_id")
+  ratioPart            Decimal  @map("ratio_part") @db.Decimal(12, 4)
+  ratioPercent         Decimal? @map("ratio_percent") @db.Decimal(10, 4)
+  sortNo               Int      @default(0) @map("sort_no")
+  componentNote        String?  @map("component_note") @db.VarChar(500)
+  materialTypeSnapshot String?  @map("material_type_snapshot") @db.VarChar(20)
+  manufacturerSnapshot String?  @map("manufacturer_snapshot") @db.VarChar(200)
+  viscositySnapshot    String?  @map("viscosity_snapshot") @db.VarChar(200)
+  formula              Formula  @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  material             Material @relation(fields: [materialId], references: [id])
+
+  @@index([formulaId], map: "idx_formula_item_formula")
+  @@index([materialId], map: "idx_formula_item_material")
+  @@map("formula_item")
+}
+
+model FormulaAdjustment {
+  id                    BigInt       @id @default(autoincrement())
+  formulaId             BigInt       @map("formula_id")
+  productionBatchNo     String?      @map("production_batch_no") @db.VarChar(80)
+  targetWeight          Decimal?     @map("target_weight") @db.Decimal(12, 3)
+  actualViscosityBefore Decimal?     @map("actual_viscosity_before") @db.Decimal(8, 2)
+  actualViscosityAfter  Decimal?     @map("actual_viscosity_after") @db.Decimal(8, 2)
+  viscosityUnit         String       @default("s") @map("viscosity_unit") @db.VarChar(10)
+  adjustmentItems       Json         @map("adjustment_items")
+  result                String?      @db.VarChar(40)
+  remark                String?      @db.VarChar(1000)
+  createdBy             String?      @map("created_by") @db.VarChar(80)
+  createdAt             DateTime     @default(now()) @map("created_at")
+  promotedFormulaId     BigInt?      @map("promoted_formula_id")
+  residualInkId         BigInt?      @map("residual_ink_id")
+  formula               Formula      @relation("adjustment_formula", fields: [formulaId], references: [id])
+  promotedFormula       Formula?     @relation("promoted_formula", fields: [promotedFormulaId], references: [id])
+  residualInk           ResidualInk? @relation(fields: [residualInkId], references: [id], onDelete: SetNull)
+
+  @@index([formulaId], map: "idx_adjustment_formula")
+  @@index([createdAt], map: "idx_adjustment_time")
+  @@map("formula_adjustment")
 }

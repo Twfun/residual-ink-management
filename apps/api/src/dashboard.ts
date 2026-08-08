@@ -1,6 +1,7 @@
 import { Controller, Get, Injectable, Query } from '@nestjs/common';
 import { RequirePermissions } from './common';
 import { PrismaService } from './prisma.service';
+import type { Prisma } from './generated/client';
 
 type Dimension = 'day' | 'week' | 'month' | 'year';
 const DIMENSIONS: Dimension[] = ['day', 'week', 'month', 'year'];
@@ -67,27 +68,35 @@ export class DashboardService {
       if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
       return new Date(now.getFullYear(), 0, 1);
     };
+    const period = toPeriod(periodValue, null);
     const inventoryStart = periodStart(toPeriod(inventoryPeriodValue, periodValue));
     const outboundStart = periodStart(toPeriod(outboundPeriodValue, periodValue));
+    const statsStart = periodStart(period);
     const inventoryWhere = inventoryStart ? { createdAt: { gte: inventoryStart } } : {};
     const outboundWhere = outboundStart ? { outboundDate: { gte: outboundStart } } : {};
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    const statsWhere: Prisma.ResidualInkWhereInput = {
+      status: '在库',
+      deletedAt: null,
+      ...(statsStart ? { createdAt: { gte: statsStart } } : {}),
+    };
+    const outboundStatsWhere: Prisma.OutboundRecordWhereInput = {
+      importedHistorical: false,
+      ...(outboundStart ? { outboundDate: { gte: outboundStart } } : {}),
+    };
     const [inStockCount, weight, unknownWeight, outboundRows, outboundLines, recentInventory, recentOutbound] =
       await Promise.all([
-        this.prisma.residualInk.count({ where: { status: '在库', deletedAt: null } }),
+        this.prisma.residualInk.count({ where: statsWhere }),
         this.prisma.residualInk.aggregate({
-          where: { status: '在库', weightKg: { not: null }, deletedAt: null },
+          where: { ...statsWhere, weightKg: { not: null } },
           _sum: { weightKg: true },
         }),
-        this.prisma.residualInk.count({ where: { status: '在库', weightKg: null, deletedAt: null } }),
+        this.prisma.residualInk.count({ where: { ...statsWhere, weightKg: null } }),
         this.prisma.outboundRecord.findMany({
-          where: { outboundDate: { gte: monthStart }, importedHistorical: false },
+          where: outboundStatsWhere,
           distinct: ['outboundNo'],
           select: { outboundNo: true },
         }),
-        this.prisma.outboundRecord.count({ where: { outboundDate: { gte: monthStart }, importedHistorical: false } }),
+        this.prisma.outboundRecord.count({ where: outboundStatsWhere }),
         this.prisma.residualInk.findMany({ take, where: { ...inventoryWhere, deletedAt: null }, orderBy: { createdAt: 'desc' } }),
         this.prisma.outboundRecord.findMany({
           take,
@@ -96,12 +105,13 @@ export class DashboardService {
         }),
       ]);
     return {
+      period: period ?? 'all',
       statistics: {
         inStockCount,
         knownWeightKg: weight._sum.weightKg === null ? null : Number(weight._sum.weightKg),
         unknownWeightCount: unknownWeight,
-        monthlyOutboundOrders: outboundRows.length,
-        monthlyOutboundLines: outboundLines,
+        outboundOrders: outboundRows.length,
+        outboundLines,
       },
       recentInventory: recentInventory.map((row) => ({
         ...row,

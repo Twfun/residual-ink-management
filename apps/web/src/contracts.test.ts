@@ -10,10 +10,11 @@ import {
 } from './contracts';
 
 describe('simplified desktop UI contract', () => {
-  it('contains only the eight authorized pages', () => {
+  it('contains the nine authorized pages', () => {
     expect(PAGE_CONTRACT.map(([, label]) => label)).toEqual([
       '智能工作台',
       '颜色匹配',
+      '配方档案',
       '余墨库存',
       '余墨出库',
       '出入库统计',

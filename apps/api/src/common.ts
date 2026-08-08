@@ -43,8 +43,20 @@ export function jsonSafe(value: unknown): unknown {
   return value;
 }
 
+function excelText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    const cell = value as Record<string, unknown>;
+    if (Array.isArray(cell.richText)) return cell.richText.map((part) => String((part as { text?: unknown })?.text ?? '')).join('');
+    if (cell.text !== undefined) return String(cell.text);
+    if (cell.result !== undefined) return String(cell.result);
+    return '';
+  }
+  return String(value);
+}
+
 export function text(value: unknown, max = 500) {
-  const result = String(value ?? '').trim();
+  const result = excelText(value).trim();
   return result ? result.slice(0, max) : null;
 }
 

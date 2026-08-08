@@ -68,8 +68,23 @@ export class InventoryService {
           : {}),
       },
       orderBy: [{ status: 'asc' }, { storageLocation: 'asc' }],
+      include: {
+        formula: { select: { versionNo: true, productColor: { select: { name: true } } } },
+        product: { select: { code: true, name: true } },
+      },
     });
-    const result = rows.map((row) => this.serialize(row, target));
+    const result = rows.map((row) => ({
+      ...this.serialize(row, target),
+      source:
+        row.formula || row.product
+          ? {
+              productCode: row.product?.code ?? null,
+              productName: row.product?.name ?? null,
+              colorName: row.formula?.productColor?.name ?? null,
+              versionNo: row.formula?.versionNo ?? null,
+            }
+          : null,
+    }));
     if (target)
       result.sort(
         (left, right) => (left.deltaE ?? Number.POSITIVE_INFINITY) - (right.deltaE ?? Number.POSITIVE_INFINITY),
