@@ -6,20 +6,21 @@
    间距标尺：4 的倍数
    ============================================================ */
 :root {
-  --rim-primary: #16796d;
-  --rim-primary-dark: #062f2c;
-  --rim-primary-bg: #e4f3ee;
-  --rim-primary-border: #9ed1c0;
-  --rim-bg: #f3f6f7;
-  --rim-text: #1d2e35;
-  --rim-text-secondary: #698087;
-  --rim-text-tertiary: #9aa8ab;
-  --rim-border: #c6cecf;
-  --rim-border-light: #e8eef0;
-  --rim-border-strong: #b7c6c8;
-  --rim-card-shadow: 0 1px 2px rgba(6, 47, 44, 0.05);
+  --rim-primary: #4caf7d;
+  --rim-primary-dark: #235f47;
+  --rim-primary-deep: #2e7d5b;
+  --rim-primary-bg: #eaf6f0;
+  --rim-primary-border: #c4e8d6;
+  --rim-bg: #f6faf8;
+  --rim-text: #1f2e2a;
+  --rim-text-secondary: #5c6f68;
+  --rim-text-tertiary: #94a69f;
+  --rim-border: #dce8e2;
+  --rim-border-light: #eef4f1;
+  --rim-border-strong: #c4e8d6;
+  --rim-card-shadow: 0 6px 20px rgba(46, 125, 91, 0.06);
 
-  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', system-ui, Arial, sans-serif;
   color: var(--rim-text);
   background: var(--rim-bg);
 }
@@ -42,8 +43,8 @@ body {
   max-width: 100%;
   background: #fff;
   border: 1px solid var(--rim-border-strong);
-  border-radius: 8px;
-  box-shadow: 0 14px 44px rgba(6, 47, 44, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 14px 44px rgba(46, 125, 91, 0.16);
   overflow: hidden;
 }
 .service-gate-titlebar {
@@ -51,7 +52,7 @@ body {
   align-items: baseline;
   gap: 10px;
   padding: 14px 18px;
-  background: var(--rim-primary-dark);
+  background: linear-gradient(135deg, #235f47, #4caf7d);
   color: #fff;
 }
 .service-gate-title {
@@ -99,7 +100,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--rim-primary);
+  color: var(--rim-primary-dark);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -139,12 +140,12 @@ body {
 }
 .enterprise-sider .ant-layout-sider-trigger {
   border-top: 1px solid var(--rim-border);
-  background: #f4f8f8;
-  color: #74868b;
+  background: #f3faf6;
+  color: #5c6f68;
 }
 .enterprise-sider .ant-layout-sider-trigger:hover {
-  background: #e7f0ef;
-  color: #16796d;
+  background: #eaf6f0;
+  color: #2e7d5b;
 }
 .enterprise-sider.ant-layout-sider-collapsed .rim-brand {
   justify-content: center;
@@ -161,6 +162,10 @@ body {
   padding-inline: 0;
   display: flex;
   justify-content: center;
+}
+/* 收起态下必须隐藏标题占位，否则会与居中规则一起把图标挤出可视区 */
+.enterprise-sider.ant-layout-sider-collapsed .ant-menu .ant-menu-item .ant-menu-title-content {
+  display: none;
 }
 .enterprise-sider.ant-layout-sider-collapsed .ant-menu .ant-menu-item .ant-menu-item-icon {
   margin-inline-end: 0;
@@ -206,7 +211,7 @@ body {
 }
 .metric-card .ant-statistic-content {
   font-size: 24px;
-  color: var(--rim-primary-dark);
+  color: var(--rim-primary-deep);
 }
 
 /* ---------- 通用布局工具 ---------- */
@@ -384,12 +389,12 @@ body {
   z-index: 2000;
   pointer-events: none;
   padding: 4px 12px;
-  background: var(--rim-primary);
+  background: linear-gradient(135deg, #4caf7d, #7cc9a2);
   color: #fff;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 6px 18px rgba(6, 47, 44, 0.28);
+  box-shadow: 0 6px 18px rgba(46, 125, 91, 0.3);
   white-space: nowrap;
   max-width: 240px;
   overflow: hidden;
@@ -418,8 +423,8 @@ body {
   overflow: hidden;
   background: #fff;
   border: 1px solid var(--rim-border-strong);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(6, 47, 44, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(46, 125, 91, 0.16);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -526,7 +531,7 @@ body {
 .login-visual {
   position: relative;
   overflow: hidden;
-  background: var(--rim-primary-dark);
+  background: linear-gradient(135deg, #235f47, #4caf7d);
 }
 .login-visual-bg {
   position: absolute;
@@ -567,11 +572,11 @@ body {
   width: 430px;
   height: 430px;
   border-radius: 50%;
-  border: 1px solid rgba(126, 214, 190, 0.28);
+  border: 1px solid rgba(168, 224, 196, 0.32);
   box-shadow:
-    0 0 0 26px rgba(126, 214, 190, 0.07),
-    0 0 0 58px rgba(126, 214, 190, 0.05),
-    0 0 0 96px rgba(126, 214, 190, 0.035);
+    0 0 0 26px rgba(168, 224, 196, 0.08),
+    0 0 0 58px rgba(168, 224, 196, 0.06),
+    0 0 0 96px rgba(168, 224, 196, 0.04);
   pointer-events: none;
 }
 .login-panel {
@@ -595,8 +600,8 @@ body {
   width: min(430px, 100%);
   background: #fff;
   border: 1px solid var(--rim-border-light);
-  border-radius: 8px;
-  box-shadow: 0 16px 44px rgba(6, 47, 44, 0.09);
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(46, 125, 91, 0.12);
   padding: 40px 36px 32px;
 }
 .login-card h2 {
