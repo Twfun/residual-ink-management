@@ -40,6 +40,7 @@ import {
   ExportOutlined,
   FileExcelOutlined,
   FolderOpenOutlined,
+  InfoCircleOutlined,
   KeyOutlined,
   LockOutlined,
   LogoutOutlined,
@@ -159,6 +160,7 @@ export default function LegacyApp() {
   const [formulaFocus, setFormulaFocus] = useState<{ productId?: string; productCode?: string } | null>(null);
   const [instrument, setInstrument] = useState<any>();
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   useEffect(() => {
     if (token)
       api<User>('/auth/me', {}, token)
@@ -254,6 +256,12 @@ export default function LegacyApp() {
                         label: '修改密码',
                         onClick: () => setPasswordModalOpen(true),
                       },
+                      {
+                        key: 'about',
+                        icon: <InfoCircleOutlined />,
+                        label: '关于',
+                        onClick: () => setAboutOpen(true),
+                      },
                       { type: 'divider' },
                       { key: 'logout', icon: <LogoutOutlined />, danger: true, label: '退出登录', onClick: logout },
                     ],
@@ -305,6 +313,7 @@ export default function LegacyApp() {
             setUser((current) => (current ? { ...current, mustChangePassword: false } : current));
           }}
         />
+        <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       </AntApp>
     </ConfigProvider>
   );
@@ -449,6 +458,50 @@ function PasswordModal({
           <Input.Password />
         </Form.Item>
       </Form>
+    </Modal>
+  );
+}
+
+// 软件名称与当前版本（发布时同步更新）
+const APP_NAME = '余墨管理系统';
+const APP_VERSION = '1.11.0';
+const APP_HOMEPAGE = 'https://github.com/Twfun/residual-ink-management';
+const APP_EMAIL = '1242420395@qq.com';
+
+function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Modal
+      open={open}
+      title="关于"
+      footer={
+        <Button type="primary" onClick={onClose}>
+          关闭
+        </Button>
+      }
+      onCancel={onClose}
+      destroyOnHidden
+      width={520}
+    >
+      <div className="rim-about">
+        <div className="rim-about-info">
+          <div className="rim-about-name">{APP_NAME}</div>
+          <div className="rim-about-row">当前版本：{APP_VERSION}</div>
+          <div className="rim-about-row">
+            官方主页：
+            <a href={APP_HOMEPAGE} target="_blank" rel="noreferrer">
+              {APP_HOMEPAGE}
+            </a>
+          </div>
+          <div className="rim-about-row">
+            邮箱联系：
+            <a href={`mailto:${APP_EMAIL}`}>{APP_EMAIL}</a>
+          </div>
+        </div>
+        <div className="rim-about-logo">
+          <img src={loginLogo} alt={APP_NAME} />
+        </div>
+      </div>
+      <div className="rim-about-copyright">版权所有 © 2026 {APP_NAME}</div>
     </Modal>
   );
 }

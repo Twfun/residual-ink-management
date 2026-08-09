@@ -794,3 +794,52 @@ body {
 .deleted-row:hover { background: #f4f8f8; }
 .deleted-row-main { display: flex; flex-direction: column; }
 .deleted-row-main small { color: var(--rim-text-secondary); }
+/* 关于弹窗 */
+.rim-about {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 0 16px;
+}
+.rim-about-info {
+  flex: 1;
+  min-width: 0;
+}
+.rim-about-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--rim-text-primary);
+  margin-bottom: 12px;
+}
+.rim-about-row {
+  font-size: 14px;
+  color: var(--rim-text-secondary);
+  line-height: 1.9;
+  word-break: break-all;
+}
+.rim-about-row a {
+  color: var(--rim-primary);
+}
+.rim-about-logo {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--rim-primary-bg, #eef7f3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rim-about-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rim-about-copyright {
+  text-align: center;
+  font-size: 12px;
+  color: var(--rim-text-tertiary);
+  border-top: 1px solid var(--rim-border);
+  padding-top: 12px;
+}
