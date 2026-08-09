@@ -6,24 +6,40 @@
    间距标尺：4 的倍数
    ============================================================ */
 :root {
-  --rim-primary: #4caf7d;
-  --rim-primary-dark: #235f47;
-  --rim-primary-deep: #2e7d5b;
-  --rim-primary-bg: #eaf6f0;
-  --rim-primary-border: #c4e8d6;
-  --rim-bg: #f6faf8;
-  --rim-text: #1f2e2a;
+  --rim-primary: #2563a8;
+  --rim-primary-dark: #1a4a8a;
+  --rim-primary-deep: #123964;
+  --rim-primary-bg: #eaf1fa;
+  --rim-primary-border: #a9c4e8;
+  --rim-bg: #f6f8fb;
+  --rim-text: #1b2e2b;
   --rim-text-secondary: #5c6f68;
-  --rim-text-tertiary: #94a69f;
-  --rim-border: #dce8e2;
-  --rim-border-light: #eef4f1;
-  --rim-border-strong: #c4e8d6;
-  --rim-card-shadow: 0 6px 20px rgba(46, 125, 91, 0.06);
+  --rim-text-tertiary: #8fa39c;
+  --rim-border: #e2e8ef;
+  --rim-border-light: #eef2f6;
+  --rim-border-strong: #a9c4e8;
+  --rim-card-shadow: 0 6px 20px rgba(37, 99, 168, 0.06);
+  /* 当前模块强调色（由 LegacyApp 在 .rim-shell 上按 mod-* 注入） */
+  --mod-accent: #2563a8;
+  --mod-bg: #eaf1fa;
+  --mod-border: #a9c4e8;
 
   font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', system-ui, Arial, sans-serif;
   color: var(--rim-text);
   background: var(--rim-bg);
 }
+/* 各业务模块强调色（CMYK 多色体系） */
+.mod-dashboard { --mod-accent: #2563a8; --mod-bg: #eaf1fa; --mod-border: #a9c4e8; }
+.mod-match { --mod-accent: #7c6ae8; --mod-bg: #efeafc; --mod-border: #c9bff4; }
+.mod-samples { --mod-accent: #db2777; --mod-bg: #fdeaf2; --mod-border: #f3b8d0; }
+.mod-formulas { --mod-accent: #d97706; --mod-bg: #fdf3e3; --mod-border: #f0c78a; }
+.mod-inventory { --mod-accent: #059669; --mod-bg: #e6f7f1; --mod-border: #a7dccf; }
+.mod-outbound { --mod-accent: #0ba5c3; --mod-bg: #e6f6fa; --mod-border: #a5dce8; }
+.mod-statistics { --mod-accent: #0ba5c3; --mod-bg: #e6f6fa; --mod-border: #a5dce8; }
+.mod-dictionary { --mod-accent: #1f2937; --mod-bg: #eef1f4; --mod-border: #c3cad3; }
+.mod-users { --mod-accent: #0ba5c3; --mod-bg: #e6f6fa; --mod-border: #a5dce8; }
+.mod-backup { --mod-accent: #d97706; --mod-bg: #fdf3e3; --mod-border: #f0c78a; }
+.mod-logs { --mod-accent: #1f2937; --mod-bg: #eef1f4; --mod-border: #c3cad3; }
 body {
   margin: 0;
   background: var(--rim-bg);
@@ -52,7 +68,7 @@ body {
   align-items: baseline;
   gap: 10px;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #235f47, #4caf7d);
+  background: linear-gradient(135deg, #1a4a8a, #2563a8);
   color: #fff;
 }
 .service-gate-title {
@@ -138,14 +154,36 @@ body {
 .enterprise-sider .ant-menu .ant-menu-item .ant-menu-item-icon {
   font-size: 16.5px;
 }
+/* 选中项左侧扁圆指示条 */
+.enterprise-sider .ant-menu .ant-menu-item.ant-menu-item-selected {
+  position: relative;
+}
+.enterprise-sider .ant-menu .ant-menu-item.ant-menu-item-selected::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--mod-accent);
+}
+.enterprise-sider .ant-menu .ant-menu-item.ant-menu-item-selected {
+  background: var(--mod-bg);
+  color: var(--mod-accent);
+}
+.enterprise-sider .ant-menu .ant-menu-item.ant-menu-item-selected .ant-menu-item-icon {
+  color: var(--mod-accent);
+}
 .enterprise-sider .ant-layout-sider-trigger {
   border-top: 1px solid var(--rim-border);
-  background: #f3faf6;
+  background: #eef2f6;
   color: #5c6f68;
 }
 .enterprise-sider .ant-layout-sider-trigger:hover {
-  background: #eaf6f0;
-  color: #2e7d5b;
+  background: var(--rim-primary-bg);
+  color: var(--rim-primary-dark);
 }
 .enterprise-sider.ant-layout-sider-collapsed .rim-brand {
   justify-content: center;
@@ -179,9 +217,37 @@ body {
   padding: 0 28px;
   border-bottom: 1px solid var(--rim-border);
 }
-.enterprise-topbar .ant-typography {
+/* 顶栏两段式：面包屑 + 页面标题 */
+.enterprise-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.enterprise-breadcrumb {
+  font-size: 12px;
+  color: var(--rim-text-tertiary);
+  letter-spacing: 0.3px;
+}
+.enterprise-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.enterprise-title-bar {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--mod-accent);
+}
+.enterprise-title-row .ant-typography {
   margin: 0;
   font-size: 20px;
+  font-weight: 700;
+  color: var(--rim-text);
+  line-height: 1.2;
 }
 .enterprise-content {
   padding: 20px 28px;
@@ -336,16 +402,20 @@ body {
 .excel-grid-card .ant-card-body {
   padding: 0;
 }
-.excel-style-table .ant-table-thead > tr > th {
+.ant-table-wrapper.excel-style-table .ant-table-thead > tr > th {
   font-weight: 600;
   white-space: nowrap;
   border-color: var(--rim-border-strong);
+  border-bottom: 2px solid var(--rim-primary-border);
 }
-.excel-style-table .ant-table-tbody > tr > td {
+.ant-table-wrapper.excel-style-table .ant-table-tbody > tr > td {
   white-space: nowrap;
   border-color: var(--rim-border);
   padding-top: 8px;
   padding-bottom: 8px;
+}
+.ant-table-wrapper.excel-style-table .ant-table-tbody > tr:hover > td {
+  background: #f2f6fb;
 }
 /* 表头拖拽换位（Pointer 事件实现） */
 .reorderable-col-header {
@@ -373,11 +443,11 @@ body {
 /* 正在拖拽的源列 */
 .reorderable-col-header.reorderable-dragging {
   opacity: 0.55;
-  background: var(--rim-primary-bg, #e4f3ee);
+  background: var(--rim-primary-bg, #eaf6f0);
 }
 /* 拖拽到目标列时的落点高亮 */
 .reorderable-col-header.reorderable-drop-target {
-  background: var(--rim-primary-bg, #e6f4ff);
+  background: var(--rim-primary-bg, #eaf6f0);
   box-shadow: inset 0 0 0 2px var(--rim-primary);
 }
 .reorderable-col-header.reorderable-drop-target .ant-table-column-title {
@@ -389,12 +459,12 @@ body {
   z-index: 2000;
   pointer-events: none;
   padding: 4px 12px;
-  background: linear-gradient(135deg, #4caf7d, #7cc9a2);
+  background: linear-gradient(135deg, #1a4a8a, #2563a8);
   color: #fff;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 6px 18px rgba(46, 125, 91, 0.3);
+  box-shadow: 0 6px 18px rgba(37, 99, 168, 0.3);
   white-space: nowrap;
   max-width: 240px;
   overflow: hidden;
@@ -424,7 +494,7 @@ body {
   background: #fff;
   border: 1px solid var(--rim-border-strong);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(46, 125, 91, 0.16);
+  box-shadow: 0 8px 24px rgba(37, 99, 168, 0.16);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -477,12 +547,12 @@ body {
   gap: 2px;
   padding: 2px 4px 0;
 }
-.excel-style-table .ant-table-tbody .ant-table-cell-fix-right {
+.ant-table-wrapper.excel-style-table .ant-table-tbody .ant-table-cell-fix-right {
   background: #fff;
   border-left: 2px solid var(--rim-border-strong);
 }
-.excel-style-table .ant-table-thead .ant-table-cell-fix-right {
-  background: var(--rim-primary-bg);
+.ant-table-wrapper.excel-style-table .ant-table-thead .ant-table-cell-fix-right {
+  background: #eaf1fa;
 }
 .import-preview {
   border-color: var(--rim-primary-border);
@@ -531,7 +601,7 @@ body {
 .login-visual {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #235f47, #4caf7d);
+  background: linear-gradient(135deg, #123964, #1a4a8a 55%, #2563a8);
 }
 .login-visual-bg {
   position: absolute;
@@ -544,7 +614,7 @@ body {
 .login-visual-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, rgba(4, 42, 39, 0.18), rgba(4, 42, 39, 0.02) 48%, rgba(4, 42, 39, 0.3));
+  background: linear-gradient(100deg, rgba(10, 30, 60, 0.18), rgba(10, 30, 60, 0.02) 48%, rgba(10, 30, 60, 0.3));
 }
 .login-brand {
   position: absolute;
@@ -572,11 +642,11 @@ body {
   width: 430px;
   height: 430px;
   border-radius: 50%;
-  border: 1px solid rgba(168, 224, 196, 0.32);
+  border: 1px solid rgba(169, 196, 232, 0.32);
   box-shadow:
-    0 0 0 26px rgba(168, 224, 196, 0.08),
-    0 0 0 58px rgba(168, 224, 196, 0.06),
-    0 0 0 96px rgba(168, 224, 196, 0.04);
+    0 0 0 26px rgba(169, 196, 232, 0.08),
+    0 0 0 58px rgba(169, 196, 232, 0.06),
+    0 0 0 96px rgba(169, 196, 232, 0.04);
   pointer-events: none;
 }
 .login-panel {
@@ -601,7 +671,7 @@ body {
   background: #fff;
   border: 1px solid var(--rim-border-light);
   border-radius: 12px;
-  box-shadow: 0 16px 44px rgba(46, 125, 91, 0.12);
+  box-shadow: 0 16px 44px rgba(37, 99, 168, 0.12);
   padding: 40px 36px 32px;
 }
 .login-card h2 {
@@ -618,6 +688,17 @@ body {
 .login-card .ant-input-affix-wrapper,
 .login-card .ant-input {
   border-radius: 6px;
+}
+/* 全局主按钮：锚蓝渐变 + 柔和投影，hover 加深 */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #1a4a8a, #2563a8);
+  border: none;
+  box-shadow: 0 4px 14px rgba(37, 99, 168, 0.28);
+}
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: linear-gradient(135deg, #123964, #1a4a8a) !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 168, 0.36);
 }
 .login-card .ant-btn-primary {
   height: 48px;
@@ -817,15 +898,15 @@ body {
   }
 }
 /* 列表边框对比度提升约 10%：antd 表格默认分隔线 (#f0f0f0) 加深 */
-.ant-table:not(.excel-style-table) .ant-table-thead > tr > th,
-.ant-table:not(.excel-style-table) .ant-table-tbody > tr > td {
+.ant-table-wrapper:not(.excel-style-table) .ant-table-thead > tr > th,
+.ant-table-wrapper:not(.excel-style-table) .ant-table-tbody > tr > td {
   border-color: #d8d8d8;
 }
 /* 最近删除下拉面板 */
-.deleted-panel { width: 380px; max-height: 420px; overflow-y: auto; background: #fff; border-radius: 8px; box-shadow: 0 6px 24px rgba(6,47,44,.14); padding: 8px; }
+.deleted-panel { width: 380px; max-height: 420px; overflow-y: auto; background: #fff; border-radius: 10px; box-shadow: 0 6px 24px rgba(37,99,168,.14); padding: 8px; }
 .deleted-panel-title { font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--rim-border); margin-bottom: 4px; }
 .deleted-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 6px; }
-.deleted-row:hover { background: #f4f8f8; }
+.deleted-row:hover { background: #f2f6fb; }
 .deleted-row-main { display: flex; flex-direction: column; }
 .deleted-row-main small { color: var(--rim-text-secondary); }
 /* 关于弹窗 */
@@ -860,7 +941,8 @@ body {
   height: 96px;
   border-radius: 12px;
   overflow: hidden;
-  background: var(--rim-primary-bg, #eef7f3);
+  background: var(--mod-bg, #eaf1fa);
+  border: 1px solid var(--mod-border, #a9c4e8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -876,4 +958,51 @@ body {
   color: var(--rim-text-tertiary);
   border-top: 1px solid var(--rim-border);
   padding-top: 12px;
+}
+
+/* ---------- 组件质感打磨（v2） ---------- */
+/* 卡片标题统一 H2 16px/600 */
+.ant-card-bordered .ant-card-head-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+/* 指标卡：左侧模块强调色边条 */
+.metric-card {
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--mod-accent);
+}
+.metric-card .ant-statistic-content {
+  color: var(--rim-primary-deep);
+}
+/* 弹窗标题：模块强调色左竖条（门户弹窗回退锚蓝） */
+.rim-modal-accent .ant-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rim-modal-accent .ant-modal-title::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--mod-accent, #2563a8);
+}
+/* 工具栏卡：统一浅底 + 内边距 */
+.page-toolbar {
+  border-radius: 10px;
+}
+/* 数据统计合计行高亮 */
+.stats-total-row td,
+.ant-table-summary .stats-total-row td {
+  font-weight: 600;
+  background: var(--rim-primary-bg);
 }

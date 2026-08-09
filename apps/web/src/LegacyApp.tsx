@@ -218,7 +218,7 @@ export default function LegacyApp() {
   return (
     <ConfigProvider locale={zhCN} theme={{ ...rimTheme, token: { ...rimTheme.token, fontSize: 14.5 } }}>
       <AntApp>
-        <Layout className="rim-shell">
+        <Layout className={`rim-shell mod-${active}`}>
           <Layout.Sider
             className="enterprise-sider"
             width={220}
@@ -248,7 +248,13 @@ export default function LegacyApp() {
           </Layout.Sider>
           <Layout>
             <Layout.Header className="enterprise-topbar">
-              <Typography.Title level={3}>{labels[active]}</Typography.Title>
+              <div className="enterprise-title">
+                <div className="enterprise-breadcrumb">业务中心 / {labels[active]}</div>
+                <div className="enterprise-title-row">
+                  <span className="enterprise-title-bar" />
+                  <Typography.Title level={4}>{labels[active]}</Typography.Title>
+                </div>
+              </div>
               <Space>
                 <Tag color={instrument?.connected ? 'green' : 'default'}>
                   {instrument?.connected ? '仪器已连接' : '仪器未连接'}
@@ -473,7 +479,7 @@ function PasswordModal({
 
 // 软件名称与当前版本（发布时同步更新）
 const APP_NAME = '产品信息管理系统';
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.15.0';
 const APP_HOMEPAGE = 'https://github.com/Twfun/residual-ink-management';
 const APP_EMAIL = '1242420395@qq.com';
 
@@ -482,6 +488,7 @@ function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     <Modal
       open={open}
       title="关于"
+      className="rim-modal-accent"
       footer={
         <Button type="primary" onClick={onClose}>
           关闭
@@ -1409,7 +1416,6 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
       <Card className="excel-grid-card">
         <ReorderableTable
           rowKey="id"
-          className="excel-style-table"
           storageKey="inventory-ledger"
           dataSource={rows}
           columns={cols as any}

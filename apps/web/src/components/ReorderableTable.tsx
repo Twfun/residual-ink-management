@@ -201,7 +201,7 @@ function ColumnVisibilityMenu({
   );
 }
 
-export function ReorderableTable<T extends object>({ columns = [], storageKey, title, pagination, ...rest }: TableProps<T> & { storageKey?: string }) {
+export function ReorderableTable<T extends object>({ columns = [], storageKey, title, pagination, className, ...rest }: TableProps<T> & { storageKey?: string }) {
   // 初始顺序：优先读取本地存储，否则用默认排列
   const [order, setOrder] = useState<number[]>(() => readStoredOrder(storageKey, columns) ?? columns.map((_, i) => i));
   // 隐藏列集合（存原始列下标）
@@ -416,6 +416,7 @@ export function ReorderableTable<T extends object>({ columns = [], storageKey, t
       }}
     >
       <Table<T>
+        className={`excel-style-table${className ? ` ${className}` : ''}`}
         columns={draggableCols}
         title={resetBar ? () => resetBar : title}
         pagination={resolvedPagination}
