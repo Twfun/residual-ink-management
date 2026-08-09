@@ -18,6 +18,14 @@ import { PrismaService } from './prisma.service';
 
 const MATERIAL_TYPES = ['ink', 'solvent', 'additive'] as const;
 const FORMULA_STATUS = { draft: 'draft', published: 'published', disabled: 'disabled' } as const;
+const SAMPLE_TYPES = ['打样', '首单', '大货'] as const;
+
+// 样品类型：必填，且只能是「打样 / 首单 / 大货」之一
+function sampleType(value: unknown): string {
+  const v = text(value, 20);
+  if (!v || !(SAMPLE_TYPES as readonly string[]).includes(v)) throw new BadRequestException('请选择有效的样品类型。');
+  return v;
+}
 
 export type ProductInput = {
   code?: unknown;
@@ -25,7 +33,7 @@ export type ProductInput = {
   archiveDate?: unknown;
   name?: unknown;
   customerName?: unknown;
-  specification?: unknown;
+  sampleType?: unknown;
   substrate?: unknown;
   processNote?: unknown;
   status?: unknown;
@@ -94,6 +102,13 @@ export type AdjustmentInput = {
   residualInk?: unknown;
 };
 
+export type QuickFormulaInkInput = {
+  inkName?: unknown;
+  inkBrand?: unknown;
+  weightKg?: unknown;
+  note?: unknown;
+};
+
 export type QuickFormulaRowInput = {
   sortNo?: unknown;
   colorName?: unknown;
@@ -101,6 +116,7 @@ export type QuickFormulaRowInput = {
   labL?: unknown;
   labA?: unknown;
   labB?: unknown;
+  inks?: unknown;
   inkName?: unknown;
   inkBrand?: unknown;
   weightKg?: unknown;
@@ -113,6 +129,10 @@ export type QuickFormulaInput = {
   productName?: unknown;
   productCode?: unknown;
   archiveDate?: unknown;
+  sampleType?: unknown;
+  substrate?: unknown;
+  status?: unknown;
+  processNote?: unknown;
   remark?: unknown;
   rows?: unknown;
 };
@@ -195,7 +215,7 @@ export class FormulaService {
               { code: { contains: keyword } },
               { name: { contains: keyword } },
               { customerName: { contains: keyword } },
-              { specification: { contains: keyword } },
+              { sampleType: { contains: keyword } },
             ],
           }
         : {},
@@ -218,7 +238,7 @@ export class FormulaService {
         archiveDate: dateOrNull(input.archiveDate),
         name,
         customerName: text(input.customerName, 200),
-        specification: text(input.specification, 200),
+        sampleType: sampleType(input.sampleType),
         substrate: text(input.substrate, 200),
         processNote: text(input.processNote, 1000),
         status: text(input.status, 20) ?? '启用',
@@ -248,8 +268,10 @@ export class FormulaService {
           archiveDate: dateOrNull(input.archiveDate),
           name: productName,
           customerName: text(input.customerName, 200),
-          processNote: text(input.remark, 1000),
-          status: '启用',
+          sampleType: sampleType(input.sampleType),
+          substrate: text(input.substrate, 200),
+          status: text(input.status, 20) ?? '启用',
+          processNote: text(input.processNote, 1000) ?? text(input.remark, 1000),
           createdBy: user.username,
           updatedBy: user.username,
         },
@@ -259,34 +281,17 @@ export class FormulaService {
       for (const [index, raw] of rows.entries()) {
         const row = (raw ?? {}) as QuickFormulaRowInput;
         const colorName = text(row.colorName, 120);
-        const inkName = text(row.inkName, 200);
         if (!colorName) throw new BadRequestException(`第 ${index + 1} 行缺少颜色名称。`);
-        if (!inkName) throw new BadRequestException(`第 ${index + 1} 行缺少油墨颜色。`);
-        const inkBrand = text(row.inkBrand, 120);
-        let material = await tx.material.findFirst({
-          where: { materialType: 'ink', name: inkName, ...(inkBrand ? { brand: inkBrand } : {}) },
-        });
-        if (!material) {
-          let matCode: string;
-          let unique = false;
-          do {
-            matCode = `MC-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`;
-            unique = !(await tx.material.findUnique({ where: { code: matCode } }));
-          } while (!unique);
-          material = await tx.material.create({
-            data: {
-              code: matCode,
-              name: inkName,
-              materialType: 'ink',
-              colorFamily: colorName,
-              brand: inkBrand,
-              status: '启用',
-              createdBy: user.username,
-              updatedBy: user.username,
-            },
-          });
-          createdMaterials.push(material);
+        const rawInks = Array.isArray(row.inks) && row.inks.length
+          ? (row.inks as Array<QuickFormulaInkInput>)
+          : [{ inkName: row.inkName, inkBrand: row.inkBrand, weightKg: row.weightKg, note: row.note }];
+        const inks: Array<QuickFormulaInkInput & { inkName: string }> = [];
+        for (const ink of rawInks) {
+          const inkName = text(ink.inkName, 200);
+          if (inkName) inks.push({ inkName, inkBrand: ink.inkBrand, weightKg: ink.weightKg, note: ink.note });
         }
+        if (inks.length === 0) throw new BadRequestException(`第 ${index + 1} 行缺少油墨颜色。`);
+        const colorNote = text(row.note, 1000) || text(inks[0].note, 1000);
         const labL = numberOrNull(row.labL);
         const labA = numberOrNull(row.labA);
         const labB = numberOrNull(row.labB);
@@ -301,25 +306,51 @@ export class FormulaService {
             printOrder: numberOrNull(row.sortNo) ?? index + 1,
             targetViscosity: this.decimal(row.viscosity),
             targetColorData: Object.keys(labData).length ? labData : undefined,
-            remark: text(row.note, 1000),
+            remark: colorNote,
             status: '启用',
             createdBy: user.username,
             updatedBy: user.username,
           },
         });
         createdColors.push(color);
-        const items: Array<{ materialId: bigint; ratioPart: number; sortNo: number; componentNote: string | null; materialTypeSnapshot: string; manufacturerSnapshot: string | null }> = [
-          {
+        const items: Array<{ materialId: bigint; ratioPart: number; sortNo: number; componentNote: string | null; materialTypeSnapshot: string; manufacturerSnapshot: string | null }> = [];
+        for (const [inkIndex, ink] of inks.entries()) {
+          const inkBrand = text(ink.inkBrand, 120);
+          let material = await tx.material.findFirst({
+            where: { materialType: 'ink', name: ink.inkName, ...(inkBrand ? { brand: inkBrand } : {}) },
+          });
+          if (!material) {
+            let matCode: string;
+            let unique = false;
+            do {
+              matCode = `MC-${Date.now()}-${index}-${inkIndex}-${Math.random().toString(36).slice(2, 6)}`;
+              unique = !(await tx.material.findUnique({ where: { code: matCode } }));
+            } while (!unique);
+            material = await tx.material.create({
+              data: {
+                code: matCode,
+                name: ink.inkName,
+                materialType: 'ink',
+                colorFamily: colorName,
+                brand: inkBrand,
+                status: '启用',
+                createdBy: user.username,
+                updatedBy: user.username,
+              },
+            });
+            createdMaterials.push(material);
+          }
+          items.push({
             materialId: material.id,
-            ratioPart: this.decimal(row.weightKg) ?? 0,
-            sortNo: 1,
-            componentNote: text(row.note, 500),
+            ratioPart: this.decimal(ink.weightKg) ?? 0,
+            sortNo: inkIndex + 1,
+            componentNote: text(ink.note, 500),
             materialTypeSnapshot: 'ink',
             manufacturerSnapshot: inkBrand,
-          },
-        ];
-        if (defaultSolvent && defaultSolvent.id !== material.id) {
-          items.push({ materialId: defaultSolvent.id, ratioPart: 0, sortNo: 2, componentNote: '默认溶剂', materialTypeSnapshot: 'solvent', manufacturerSnapshot: null });
+          });
+        }
+        if (defaultSolvent && !items.some((item) => item.materialId === defaultSolvent.id)) {
+          items.push({ materialId: defaultSolvent.id, ratioPart: 0, sortNo: items.length + 1, componentNote: '默认溶剂', materialTypeSnapshot: 'solvent', manufacturerSnapshot: null });
         }
         const max = await tx.formula.aggregate({ where: { productColorId: color.id }, _max: { versionNo: true } });
         await tx.formula.create({
@@ -327,7 +358,7 @@ export class FormulaService {
             productColorId: color.id,
             versionNo: (max._max.versionNo ?? 0) + 1,
             basisType: '份数',
-            remark: text(row.note, 1000),
+            remark: colorNote,
             createdBy: user.username,
             items: { create: items },
           },
@@ -384,7 +415,7 @@ export class FormulaService {
         ...(input.formulaNo !== undefined ? { formulaNo: text(input.formulaNo, 80) } : {}),
         ...(input.archiveDate !== undefined ? { archiveDate: dateOrNull(input.archiveDate) } : {}),
         ...(input.customerName !== undefined ? { customerName: text(input.customerName, 200) } : {}),
-        ...(input.specification !== undefined ? { specification: text(input.specification, 200) } : {}),
+        ...(input.sampleType !== undefined ? { sampleType: sampleType(input.sampleType) } : {}),
         ...(input.substrate !== undefined ? { substrate: text(input.substrate, 200) } : {}),
         ...(input.processNote !== undefined ? { processNote: text(input.processNote, 1000) } : {}),
         ...(input.status !== undefined ? { status: text(input.status, 20) ?? before.status } : {}),

@@ -194,12 +194,89 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 0 16px;
 }
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+}
 .form-section {
   margin-bottom: 20px;
 }
 .form-section + .form-section {
   border-top: 1px solid #f0f0f0;
   padding-top: 16px;
+}
+.quick-form .ant-form-item {
+  margin-bottom: 12px;
+}
+.quick-form .form-section {
+  margin-bottom: 12px;
+}
+.quick-form .form-section + .form-section {
+  padding-top: 10px;
+}
+.spot-color-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.spot-color-tabs .spot-color-tab {
+  min-width: 58px;
+}
+.spot-color-sequence {
+  margin-inline-end: 6px;
+  font-weight: 600;
+}
+.spot-color-panel {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+.spot-color-row-1 {
+  display: grid;
+  grid-template-columns: 110px 1fr 120px;
+  gap: 0 16px;
+}
+.spot-color-lab {
+  margin: 4px 0 12px;
+}
+.spot-color-lab .ant-form-item {
+  margin-bottom: 0;
+}
+.spot-color-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 120px 1fr;
+  gap: 0 16px;
+}
+.spot-color-ink-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px 1fr auto;
+  gap: 0 12px;
+  align-items: start;
+}
+.spot-color-ink-row .ant-form-item {
+  margin-bottom: 8px;
+}
+.spot-color-inks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.spot-color-inks-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rim-text-secondary);
+}
+.spot-color-inks + .spot-color-panel-actions {
+  margin-top: 8px;
+}
+.spot-color-panel-actions {
+  margin-top: 8px;
+  text-align: right;
 }
 .toolbar-actions {
   margin-left: auto;
@@ -235,6 +312,136 @@ body {
   border-color: var(--rim-border);
   padding-top: 8px;
   padding-bottom: 8px;
+}
+/* 表头拖拽换位（Pointer 事件实现） */
+.reorderable-col-header {
+  cursor: grab;
+  user-select: none;
+}
+.reorderable-col-header:active {
+  cursor: grabbing;
+}
+.reorderable-col-header .ant-table-column-title {
+  position: relative;
+}
+.reorderable-col-header .ant-table-column-title::before {
+  content: '⋮⋮';
+  margin-right: 6px;
+  font-size: 12px;
+  letter-spacing: -1px;
+  color: var(--rim-text-tertiary);
+  opacity: 0.55;
+}
+.reorderable-col-header:hover .ant-table-column-title::before {
+  opacity: 1;
+  color: var(--rim-primary);
+}
+/* 正在拖拽的源列 */
+.reorderable-col-header.reorderable-dragging {
+  opacity: 0.55;
+  background: var(--rim-primary-bg, #e4f3ee);
+}
+/* 拖拽到目标列时的落点高亮 */
+.reorderable-col-header.reorderable-drop-target {
+  background: var(--rim-primary-bg, #e6f4ff);
+  box-shadow: inset 0 0 0 2px var(--rim-primary);
+}
+.reorderable-col-header.reorderable-drop-target .ant-table-column-title {
+  color: var(--rim-primary);
+}
+/* 跟随指针的拖拽幽灵标签 */
+.reorderable-drag-ghost {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  padding: 4px 12px;
+  background: var(--rim-primary);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 6px 18px rgba(6, 47, 44, 0.28);
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 恢复默认顺序按钮栏 */
+.reorderable-table-reset {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 4px;
+}
+.reorderable-table-reset .ant-btn {
+  color: var(--rim-text-tertiary);
+}
+.reorderable-table-reset .ant-btn:hover {
+  color: var(--rim-primary);
+}
+/* 表头右键「显示/隐藏列」菜单 */
+.reorderable-col-menu {
+  position: fixed;
+  z-index: 2100;
+  min-width: 208px;
+  max-height: 70vh;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--rim-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(6, 47, 44, 0.16);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+.reorderable-col-menu-title {
+  padding: 4px 8px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rim-text-secondary);
+  border-bottom: 1px solid var(--rim-border);
+  margin-bottom: 4px;
+}
+.reorderable-col-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.reorderable-col-menu-list li {
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.reorderable-col-menu-list li:hover {
+  background: var(--rim-primary-bg, #f0f7f5);
+}
+.reorderable-col-menu-list li.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.reorderable-col-menu-list .ant-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.reorderable-col-menu-label {
+  font-size: 13px;
+  color: var(--rim-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reorderable-col-menu-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 0;
 }
 .excel-style-table .ant-table-tbody .ant-table-cell-fix-right {
   background: #fff;

@@ -7,6 +7,7 @@ import { AuthController, AuthService } from './auth';
 import { BackupController, BackupService } from './backup';
 import { JsonSafeInterceptor, Public } from './common';
 import { DashboardController, DashboardService } from './dashboard';
+import { DictionaryController, DictionaryService } from './dictionary';
 import { ExcelExportController, ExcelExportService, ExcelImportController, ExcelImportService } from './excel';
 import { AdjustmentsController, FormulasController, FormulaService, MaterialsController, ProductColorsController, ProductsController } from './formula';
 import { JwtAuthGuard, PermissionsGuard } from './guards';
@@ -14,6 +15,7 @@ import { InventoryController, InventoryService } from './inventory';
 import { MatchController, MatchService } from './match';
 import { OutboundController, OutboundService } from './outbound';
 import { PrismaService } from './prisma.service';
+import { SamplesController, SampleService } from './samples';
 import { StatisticsController, StatisticsService } from './statistics';
 
 @Controller('health')
@@ -42,6 +44,7 @@ class HealthController {
     ExcelExportController,
     DashboardController,
     StatisticsController,
+    DictionaryController,
     AdministrationController,
     BackupController,
     ProductsController,
@@ -49,6 +52,7 @@ class HealthController {
     MaterialsController,
     FormulasController,
     AdjustmentsController,
+    SamplesController,
   ],
   providers: [
     PrismaService,
@@ -61,9 +65,11 @@ class HealthController {
     ExcelExportService,
     DashboardService,
     StatisticsService,
+    DictionaryService,
     AdministrationService,
     BackupService,
     FormulaService,
+    SampleService,
     JwtAuthGuard,
     PermissionsGuard,
     { provide: APP_GUARD, useExisting: JwtAuthGuard },

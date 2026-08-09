@@ -12,15 +12,20 @@ import {
   Select,
   Space,
   Switch,
-  Table,
   Tag,
   Typography,
 } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { BgColorsOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { api } from './api';
+import { MeasureModal } from './components/MeasureModal';
+import { ReorderableTable } from './components/ReorderableTable';
+import type { XriteMeasurement } from './labColor';
 
 const MATERIAL_TYPE_LABELS: Record<string, string> = { ink: '油墨', solvent: '溶剂', additive: '添加剂' };
+const SAMPLE_TYPES = ['打样', '首单', '大货'] as const;
+const SAMPLE_TYPE_OPTIONS = SAMPLE_TYPES.map((value) => ({ value, label: value }));
 const FORMULA_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: '草稿', color: 'gold' },
   published: { label: '已发布', color: 'green' },
@@ -63,9 +68,6 @@ export function MaterialsPage({ token, rights, embedded }: { token: string; righ
 
   const openEdit = (row?: any) => {
     setEditing(row ?? {});
-    form.setFieldsValue(
-      row ?? { materialType: 'ink', viscosityUnit: 's', status: '启用', isDefaultSolvent: false },
-    );
   };
   const save = async () => {
     const values = await form.validateFields();
@@ -100,9 +102,10 @@ export function MaterialsPage({ token, rights, embedded }: { token: string; righ
   );
 
   const table = (
-    <Table
+    <ReorderableTable
       rowKey="id"
       size="small"
+      storageKey="formula-materials"
       loading={loading}
       dataSource={rows}
       pagination={{ defaultPageSize: 20, showSizeChanger: true }}
@@ -152,7 +155,13 @@ export function MaterialsPage({ token, rights, embedded }: { token: string; righ
         width={720}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" className="form-grid">
+        <Form
+          key={editing ? editing.id ?? 'create' : 'create'}
+          form={form}
+          layout="vertical"
+          className="form-grid"
+          initialValues={editing ?? { materialType: 'ink', viscosityUnit: 's', status: '启用', isDefaultSolvent: false }}
+        >
           <Form.Item name="code" label="物料编码" rules={[{ required: true, message: '请输入物料编码' }]}>
             <Input disabled={!!editing?.id} />
           </Form.Item>
@@ -254,8 +263,8 @@ function ProductModal({ token, value, onClose, onSaved }: { token: string; value
         <Form.Item name="archiveDate" label="归档日期">
           <DatePicker style={{ width: '100%' }} />
         </Form.Item>
-        <Form.Item name="specification" label="规格">
-          <Input />
+        <Form.Item name="sampleType" label="样品类型" rules={[{ required: true, message: '请选择样品类型' }]}>
+          <Select placeholder="请选择" options={SAMPLE_TYPE_OPTIONS} />
         </Form.Item>
         <Form.Item name="substrate" label="承印材料">
           <Input />
@@ -322,12 +331,23 @@ function ColorModal({ token, productId, value, onClose, onSaved }: { token: stri
   );
 }
 
-export function FormulasPage({ token, rights }: { token: string; rights: string[] }) {
+export function FormulasPage({
+  token,
+  rights,
+  focusProduct,
+  onFocusHandled,
+}: {
+  token: string;
+  rights: string[];
+  focusProduct?: { productId?: string; productCode?: string } | null;
+  onFocusHandled?: () => void;
+}) {
   const { message } = AntApp.useApp();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [detail, setDetail] = useState<any | null>(null);
+  const detailRef = useRef<HTMLDivElement | null>(null);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [editingColor, setEditingColor] = useState<any | null>(null);
   const [formulaColor, setFormulaColor] = useState<any | null>(null);
@@ -353,6 +373,32 @@ export function FormulasPage({ token, rights }: { token: string; rights: string[
       message.error(error instanceof Error ? error.message : '加载失败。');
     }
   };
+  // 从样品档案跳转时，打开对应产品（含其专色与配方）详情
+  useEffect(() => {
+    if (!focusProduct) return;
+    const openFocused = async () => {
+      try {
+        if (focusProduct.productId) {
+          setDetail(await api<any>(`/products/${focusProduct.productId}`, {}, token));
+        } else if (focusProduct.productCode) {
+          const result = await api<any[]>(`/products?keyword=${encodeURIComponent(focusProduct.productCode)}`, {}, token);
+          const match = result.find((p) => p.code === focusProduct.productCode);
+          if (match) setDetail(await api<any>(`/products/${match.id}`, {}, token));
+        }
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '加载配方失败。');
+      } finally {
+        onFocusHandled?.();
+      }
+    };
+    void openFocused();
+  }, [focusProduct]);
+  // 打开产品详情后滚动到详情卡片，便于查看配方
+  useEffect(() => {
+    if (detail && detailRef.current) {
+      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [detail]);
   useEffect(() => {
     void load('');
   }, []);
@@ -365,20 +411,24 @@ export function FormulasPage({ token, rights }: { token: string; rights: string[
           <Space wrap>
             <Input.Search
               allowClear
-              placeholder="产品编码、名称、客户或规格"
+              placeholder="产品编码、名称、客户或样品类型"
               style={{ width: 280 }}
               onSearch={(value) => void load(value)}
               onChange={(e) => setKeyword(e.target.value)}
             />
             <Button onClick={() => setMaterialOpen(true)}>配方物料</Button>
-            {canEdit && <Button type="primary" onClick={() => setQuickOpen(true)}>新增配方</Button>}
-            {canEdit && <Button onClick={() => setEditingProduct({})}>新增产品</Button>}
+            {canEdit && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setQuickOpen(true)}>
+                新增
+              </Button>
+            )}
           </Space>
         }
       >
-        <Table
+        <ReorderableTable
           rowKey="id"
           size="small"
+          storageKey="formula-products"
           loading={loading}
           dataSource={products}
           pagination={{ defaultPageSize: 20, showSizeChanger: true }}
@@ -388,7 +438,7 @@ export function FormulasPage({ token, rights }: { token: string; rights: string[
             { title: '产品名称', dataIndex: 'name', width: 170 },
             { title: '客户', dataIndex: 'customerName', width: 130 },
             { title: '归档日期', dataIndex: 'archiveDate', width: 100, render: (value: any) => (value ? String(value).slice(0, 10) : '—') },
-            { title: '规格', dataIndex: 'specification', width: 130 },
+            { title: '样品类型', dataIndex: 'sampleType', width: 100, render: (value: any) => value ?? '—' },
             { title: '承印材料', dataIndex: 'substrate', width: 110 },
             { title: '专色数', key: 'colors', width: 70, render: (_: unknown, row: any) => row._count?.colors ?? 0 },
             { title: '状态', dataIndex: 'status', width: 70, render: (value: string) => <Tag color={value === '启用' ? 'green' : 'default'}>{value}</Tag> },
@@ -408,12 +458,14 @@ export function FormulasPage({ token, rights }: { token: string; rights: string[
       </Card>
       {detail && (
         <Card
+          ref={detailRef}
           title={`${detail.name}（${detail.code}）的专色`}
           extra={canEdit && <Button onClick={() => setEditingColor({})}>新增专色</Button>}
         >
-          <Table
+          <ReorderableTable
             rowKey="id"
             size="small"
+            storageKey="formula-product-colors"
             dataSource={detail.colors ?? []}
             pagination={false}
             columns={[
@@ -511,49 +563,96 @@ function QuickFormulaModal({ token, onClose, onSaved }: { token: string; onClose
   const { message } = AntApp.useApp();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [measureOpen, setMeasureOpen] = useState(false);
+  const [customers, setCustomers] = useState<Array<{ value: string; label: string }>>([]);
+  const [inkColors, setInkColors] = useState<Array<{ value: string; label: string }>>([]);
+  const [inkBrands, setInkBrands] = useState<Array<{ value: string; label: string }>>([]);
+  const rowsWatch = Form.useWatch('rows', form);
+  useEffect(() => {
+    void api<any>('/dictionary/customers/options', {}, token)
+      .then((data) => setCustomers(data.rows ?? []))
+      .catch(() => undefined);
+    void api<any>('/dictionary/ink-colors/options', {}, token)
+      .then((data) => setInkColors(data.rows ?? []))
+      .catch(() => undefined);
+    void api<any>('/dictionary/ink-manufacturers/options', {}, token)
+      .then((data) => setInkBrands(data.rows ?? []))
+      .catch(() => undefined);
+  }, [token]);
+  const handleMeasured = (measurement: XriteMeasurement) => {
+    setMeasureOpen(false);
+    form.setFieldsValue({
+      rows: {
+        [activeIndex]: { labL: measurement.l, labA: measurement.a, labB: measurement.b },
+      },
+    });
+    message.success('测量完成，Lab 已自动填入当前专色。');
+  };
   const save = async () => {
     let values: any;
     try {
       values = await form.validateFields();
-    } catch (error) {
-      if ((error as any)?.errorFields?.length) message.warning('请完善必填项。');
-      else if (error instanceof Error) message.error(error.message);
+    } catch (error: any) {
+      if (error?.errorFields?.length) {
+        const name = error.errorFields[0]?.name;
+        if (Array.isArray(name) && typeof name[1] === 'number') setActiveIndex(name[1]);
+        message.warning('请完善必填项。');
+      } else if (error instanceof Error) {
+        message.error(error.message);
+      }
       return;
     }
-    const rows = (values.rows ?? []).filter((row: any) => row && (row.colorName || row.inkName));
-    if (rows.length === 0) {
-      message.warning('请至少填写一条配方明细。');
-      return;
-    }
+    const rows = (values.rows ?? []).filter((row: any) => row && row.colorName);
+    const base = {
+      formulaNo: values.formulaNo || null,
+      customerName: values.customerName || null,
+      archiveDate: values.archiveDate ? values.archiveDate.format('YYYY-MM-DD') : null,
+      sampleType: values.sampleType,
+      substrate: values.substrate || null,
+      status: values.status || '启用',
+      processNote: values.processNote || null,
+    };
     setSaving(true);
     try {
-      await api('/products/formula', {
-        method: 'POST',
-        body: JSON.stringify({
-          formulaNo: values.formulaNo || null,
-          customerName: values.customerName || null,
-          productName: values.productName,
-          productCode: values.productCode,
-          archiveDate: values.archiveDate ? values.archiveDate.format('YYYY-MM-DD') : null,
-          remark: values.remark || null,
-          rows: rows.map((row: any, index: number) => ({
-            sortNo: row.sortNo ?? index + 1,
-            colorName: row.colorName,
-            viscosity: row.viscosity ?? null,
-            labL: row.labL ?? null,
-            labA: row.labA ?? null,
-            labB: row.labB ?? null,
-            inkName: row.inkName,
-            inkBrand: row.inkBrand || null,
-            weightKg: row.weightKg ?? null,
-            note: row.note || null,
-          })),
-        }),
-      }, token);
-      message.success('配方档案已创建。');
+      if (rows.length > 0) {
+        await api('/products/formula', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...base,
+            productName: values.productName,
+            productCode: values.productCode,
+            rows: rows.map((row: any, index: number) => ({
+              sortNo: row.sortNo ?? index + 1,
+              colorName: row.colorName,
+              viscosity: row.viscosity ?? null,
+              labL: row.labL ?? null,
+              labA: row.labA ?? null,
+              labB: row.labB ?? null,
+              inks: (row.inks ?? []).map((ink: any) => ({
+                inkName: ink.inkName,
+                inkBrand: ink.inkBrand || null,
+                weightKg: ink.weightKg ?? null,
+                note: ink.note || null,
+              })),
+            })),
+          }),
+        }, token);
+        message.success('产品与配方已创建。');
+      } else {
+        await api('/products', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...base,
+            code: values.productCode,
+            name: values.productName,
+          }),
+        }, token);
+        message.success('产品已创建。');
+      }
       onSaved();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '创建失败。');
+      message.error(error instanceof Error ? error.message : '保存失败。');
     } finally {
       setSaving(false);
     }
@@ -561,154 +660,185 @@ function QuickFormulaModal({ token, onClose, onSaved }: { token: string; onClose
   return (
     <Modal
       open
-      title="新增配方"
+      title="新增"
       onCancel={onClose}
       onOk={() => void save()}
       confirmLoading={saving}
-      width={1120}
+      width={880}
       destroyOnHidden
     >
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" className="quick-form" initialValues={{ archiveDate: dayjs(), status: '启用' }}>
         <section className="form-section">
-          <Typography.Title level={5} style={{ marginTop: 0 }}>基础信息</Typography.Title>
-          <div className="form-grid">
-            <Form.Item name="formulaNo" label="配方编号">
-              <Input placeholder="留空自动生成" />
-            </Form.Item>
-            <Form.Item name="customerName" label="客户">
-              <Input />
+          <Typography.Title level={5} style={{ margin: '0 0 8px' }}>基础信息</Typography.Title>
+          <div className="form-grid-3">
+            <Form.Item name="productCode" label="产品编码" rules={[{ required: true, message: '请输入产品编码' }]}>
+              <Input placeholder="如 P-2026-001" />
             </Form.Item>
             <Form.Item name="productName" label="产品名称" rules={[{ required: true, message: '请输入产品名称' }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="productCode" label="产品编码" rules={[{ required: true, message: '请输入产品编码' }]}>
-              <Input />
+            <Form.Item name="formulaNo" label="配方编号">
+              <Input placeholder="留空自动生成" />
+            </Form.Item>
+            <Form.Item name="customerName" label="客户">
+              <Select
+                showSearch
+                allowClear
+                placeholder="选择客户"
+                 options={customers}
+                 filterOption={(input, option) => String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
+               />
             </Form.Item>
             <Form.Item name="archiveDate" label="归档日期">
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>
+            <Form.Item name="sampleType" label="样品类型" rules={[{ required: true, message: '请选择样品类型' }]}>
+              <Select placeholder="请选择" options={SAMPLE_TYPE_OPTIONS} />
+            </Form.Item>
+            <Form.Item name="substrate" label="承印材料">
+              <Input />
+            </Form.Item>
+            <Form.Item name="status" label="状态" rules={[{ required: true }]}>
+              <Select options={['启用', '停用'].map((v) => ({ value: v, label: v }))} />
+            </Form.Item>
           </div>
         </section>
         <section className="form-section">
-          <Typography.Title level={5} style={{ marginTop: 0 }}>配方明细</Typography.Title>
+          <Typography.Title level={5} style={{ margin: '0 0 8px' }}>配方明细</Typography.Title>
           <Form.List name="rows">
-            {(fields, { add, remove }) => (
-              <Table
-                rowKey="key"
-                size="small"
-                pagination={false}
-                dataSource={fields}
-                footer={() => (
-                  <Button size="small" type="dashed" onClick={() => add({})}>+ 新增原料</Button>
-                )}
-                columns={[
-                  {
-                    title: '色序',
-                    key: 'sortNo',
-                    width: 70,
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'sortNo']} noStyle>
-                        <InputNumber min={1} style={{ width: '100%' }} />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: '颜色名称',
-                    key: 'colorName',
-                    width: 110,
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'colorName']} rules={[{ required: true, message: '必填' }]} noStyle>
-                        <Input />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: '粘度',
-                    key: 'viscosity',
-                    width: 80,
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'viscosity']} noStyle>
-                        <InputNumber min={0} style={{ width: '100%' }} />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: 'LAB值',
-                    key: 'lab',
-                    width: 170,
-                    render: (_: unknown, field: any) => (
-                      <Space size={4}>
-                        <Form.Item name={[field.name, 'labL']} noStyle>
-                          <InputNumber placeholder="L" style={{ width: 52 }} />
+            {(fields, { add, remove }) => {
+              const removeColor = (formIndex: number, tabIndex: number) => {
+                remove(formIndex);
+                setActiveIndex((prev) => {
+                  if (tabIndex === prev) return Math.max(0, prev - 1);
+                  if (tabIndex < prev) return prev - 1;
+                  return prev;
+                });
+              };
+              return (
+                <>
+                  <div className="spot-color-tabs">
+                    <Tag color="geekblue" className="spot-color-sequence">
+                      当前色序：{rowsWatch?.[activeIndex]?.sortNo ?? activeIndex + 1}
+                    </Tag>
+                    {fields.map((field, index) => (
+                      <Button
+                        key={field.key}
+                        size="small"
+                        className="spot-color-tab"
+                        type={index === activeIndex ? 'primary' : 'default'}
+                        onClick={() => setActiveIndex(index)}
+                      >
+                        {`专色 ${index + 1}`}
+                      </Button>
+                    ))}
+                    <Button
+                      size="small"
+                      type="primary"
+                      ghost
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        const next = fields.length;
+                        add({ sortNo: next + 1, inks: [{ inkName: '', inkBrand: '', weightKg: null, note: '' }] });
+                        setActiveIndex(next);
+                      }}
+                    >
+                      新增专色
+                    </Button>
+                  </div>
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.key}
+                      className="spot-color-panel"
+                      style={{ display: index === activeIndex ? 'block' : 'none', marginTop: 12 }}
+                    >
+                      <div className="spot-color-row-1">
+                        <Form.Item name={[field.name, 'sortNo']} label="色序">
+                          <InputNumber min={1} style={{ width: '100%' }} />
                         </Form.Item>
-                        <Form.Item name={[field.name, 'labA']} noStyle>
-                          <InputNumber placeholder="a" style={{ width: 52 }} />
+                        <Form.Item name={[field.name, 'colorName']} label="颜色名称" rules={[{ required: true, message: '必填' }]}>
+                          <Input />
                         </Form.Item>
-                        <Form.Item name={[field.name, 'labB']} noStyle>
-                          <InputNumber placeholder="b" style={{ width: 52 }} />
+                        <Form.Item name={[field.name, 'viscosity']} label="粘度">
+                          <InputNumber min={0} style={{ width: '100%' }} />
                         </Form.Item>
-                      </Space>
-                    ),
-                  },
-                  {
-                    title: '油墨颜色',
-                    key: 'inkName',
-                    width: 120,
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'inkName']} rules={[{ required: true, message: '必填' }]} noStyle>
-                        <Input />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: '油墨品牌',
-                    key: 'inkBrand',
-                    width: 110,
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'inkBrand']} noStyle>
-                        <Input />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: '用量kg',
-                    key: 'weightKg',
-                    width: 90,
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'weightKg']} noStyle>
-                        <InputNumber min={0} style={{ width: '100%' }} />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: '备注',
-                    key: 'note',
-                    render: (_: unknown, field: any) => (
-                      <Form.Item name={[field.name, 'note']} noStyle>
-                        <Input />
-                      </Form.Item>
-                    ),
-                  },
-                  {
-                    title: '操作',
-                    key: 'action',
-                    width: 60,
-                    render: (_: unknown, field: any) => (
-                      <Button size="small" danger type="link" onClick={() => remove(field.name)}>移除</Button>
-                    ),
-                  },
-                ]}
-              />
-            )}
+                      </div>
+                      <div className="spot-color-lab">
+                        <Form.Item label="Lab值" style={{ marginBottom: 0 }}>
+                          <Space size={8}>
+                            <Space size={4}>
+                              <Form.Item name={[field.name, 'labL']} noStyle>
+                                <InputNumber placeholder="L" style={{ width: 64 }} />
+                              </Form.Item>
+                              <Form.Item name={[field.name, 'labA']} noStyle>
+                                <InputNumber placeholder="a" style={{ width: 64 }} />
+                              </Form.Item>
+                              <Form.Item name={[field.name, 'labB']} noStyle>
+                                <InputNumber placeholder="b" style={{ width: 64 }} />
+                              </Form.Item>
+                            </Space>
+                            <Button size="small" icon={<BgColorsOutlined />} onClick={() => setMeasureOpen(true)}>测量</Button>
+                          </Space>
+                        </Form.Item>
+                      </div>
+                      <div className="spot-color-inks">
+                        <Form.List name={[field.name, 'inks']}>
+                          {(inkFields, { add, remove }) => (
+                            <>
+                              <div className="spot-color-inks-header">
+                                <span className="spot-color-inks-label">油墨组成</span>
+                                <Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => add({ inkName: '', inkBrand: '', weightKg: null, note: '' })}>添加油墨</Button>
+                              </div>
+                              {inkFields.map((inkField) => (
+                                <div key={inkField.key} className="spot-color-ink-row">
+                                  <Form.Item name={[inkField.name, 'inkName']} label="油墨颜色" rules={[{ required: true, message: '必填' }]}>
+                                    <Select
+                                      showSearch
+                                      placeholder="选择油墨颜色"
+                                      options={inkColors}
+                                      filterOption={(input, option) => String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item name={[inkField.name, 'inkBrand']} label="油墨品牌">
+                                    <Select
+                                      showSearch
+                                      allowClear
+                                      placeholder="选择油墨品牌"
+                                      options={inkBrands}
+                                      filterOption={(input, option) => String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item name={[inkField.name, 'weightKg']} label="用量kg">
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item name={[inkField.name, 'note']} label="备注">
+                                    <Input />
+                                  </Form.Item>
+                                  <Button size="small" danger type="text" icon={<CloseOutlined />} title="移除该油墨" onClick={() => remove(inkField.name)} />
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </Form.List>
+                      </div>
+                      <div className="spot-color-panel-actions">
+                        <Button size="small" danger type="link" onClick={() => removeColor(field.name, index)}>移除本专色</Button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              );
+            }}
           </Form.List>
         </section>
         <section className="form-section">
-          <Typography.Title level={5} style={{ marginTop: 0 }}>备注</Typography.Title>
-          <Form.Item name="remark" noStyle>
-            <Input.TextArea rows={2} />
+          <Typography.Title level={5} style={{ margin: '0 0 8px' }}>工艺备注</Typography.Title>
+          <Form.Item name="processNote" noStyle>
+            <Input.TextArea rows={1} />
           </Form.Item>
         </section>
       </Form>
+      <MeasureModal open={measureOpen} onCancel={() => setMeasureOpen(false)} onSuccess={handleMeasured} />
     </Modal>
   );
 }
@@ -740,9 +870,10 @@ function CalculateModal({ token, formula, onClose }: { token: string; formula: a
         {result && <Tag>总份数 {result.totalParts}</Tag>}
       </Space>
       {result && (
-        <Table
+        <ReorderableTable
           rowKey="materialCode"
           size="small"
+          storageKey="formula-dosage-result"
           pagination={false}
           dataSource={result.items}
           columns={[
@@ -775,9 +906,10 @@ function FormulaDetailModal({ formula, onClose }: { formula: any; onClose: () =>
         <Descriptions.Item label="发布">{formula.publishedBy ?? '—'} {formula.publishedAt ? String(formula.publishedAt).slice(0, 10) : ''}</Descriptions.Item>
         <Descriptions.Item label="变更原因">{formula.changeReason ?? '—'}</Descriptions.Item>
       </Descriptions>
-      <Table
+      <ReorderableTable
         rowKey="id"
         size="small"
+        storageKey="formula-detail-items"
         pagination={false}
         dataSource={formula.items ?? []}
         columns={[
@@ -854,9 +986,10 @@ function FormulaVersionModal({ token, rights, color, onClose }: { token: string;
           <Button type="primary" onClick={() => void createDraft()}>新建配方草稿</Button>
         </Space>
       )}
-      <Table
+      <ReorderableTable
         rowKey="id"
         size="small"
+        storageKey="formula-versions"
         loading={loading}
         dataSource={rows}
         pagination={false}
@@ -1013,9 +1146,10 @@ function FormulaEditModal({ token, formula, onClose, onSaved }: { token: string;
           <Input style={{ width: 200 }} />
         </Form.Item>
       </Form>
-      <Table
+      <ReorderableTable
         rowKey="key"
         size="small"
+        storageKey="formula-edit-items"
         pagination={false}
         dataSource={items}
         footer={() => (
@@ -1161,9 +1295,10 @@ function AdjustmentsModal({ token, rights, formula, onClose }: { token: string; 
           <Button type="primary" onClick={() => setCreating(true)}>新增调色记录</Button>
         </Space>
       )}
-      <Table
+      <ReorderableTable
         rowKey="id"
         size="small"
+        storageKey="formula-adjustments"
         loading={loading}
         dataSource={rows}
         pagination={{ defaultPageSize: 10 }}

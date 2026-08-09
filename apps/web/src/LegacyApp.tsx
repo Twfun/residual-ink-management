@@ -39,9 +39,11 @@ import {
   EditOutlined,
   ExportOutlined,
   FileExcelOutlined,
+  FolderOpenOutlined,
   KeyOutlined,
   LockOutlined,
   LogoutOutlined,
+  ProfileOutlined,
   SaveOutlined,
   SearchOutlined,
   TeamOutlined,
@@ -55,8 +57,11 @@ import zhCN from 'antd/locale/zh_CN';
 import { api, API } from './api';
 import { EChart } from './components/EChart';
 import { FormulasPage } from './FormulaPages';
+import { DictionaryPage } from './DictionaryPage';
+import { SamplePage } from './SamplePage';
 import { MeasureModal } from './components/MeasureModal';
 import { PantoneLibraryModal } from './components/PantoneLibraryModal';
+import { ReorderableTable } from './components/ReorderableTable';
 import { EmptyState, MetricCard } from './components/ui';
 import { RIM, rimTheme } from './theme';
 import type { XriteMeasurement } from './labColor';
@@ -90,10 +95,12 @@ type User = {
 type PageKey =
   | 'dashboard'
   | 'match'
+  | 'samples'
   | 'formulas'
   | 'inventory'
   | 'outbound'
   | 'statistics'
+  | 'dictionary'
   | 'users'
   | 'backup'
   | 'logs';
@@ -129,10 +136,12 @@ const labels = Object.fromEntries(PAGE_CONTRACT.map(([key, label]) => [key, labe
 const pages: Array<[PageKey, string, string, React.ReactNode]> = [
   ['dashboard', labels.dashboard, 'dashboard.view', <DashboardOutlined />],
   ['match', labels.match, 'match.view', <BgColorsOutlined />],
+  ['samples', labels.samples, 'sample.view', <FolderOpenOutlined />],
   ['formulas', labels.formulas, 'formula.view', <BookOutlined />],
   ['inventory', labels.inventory, 'inventory.view', <DatabaseOutlined />],
   ['outbound', labels.outbound, 'outbound.view', <ExportOutlined />],
   ['statistics', labels.statistics, 'dashboard.view', <BarChartOutlined />],
+  ['dictionary', labels.dictionary, 'dictionary.manage', <ProfileOutlined />],
   ['users', labels.users, 'users.manage', <TeamOutlined />],
   ['backup', labels.backup, 'backup.manage', <CloudServerOutlined />],
   ['logs', labels.logs, 'logs.view', <AuditOutlined />],
@@ -146,7 +155,10 @@ export default function LegacyApp() {
   const [user, setUser] = useState<User | null>(null);
   const [active, setActive] = useState<PageKey>('dashboard');
   const [keepAliveKeys, setKeepAliveKeys] = useState<PageKey[]>(['dashboard']);
+  // 从样品档案跳转到配方档案时，需要聚焦的产品目标
+  const [formulaFocus, setFormulaFocus] = useState<{ productId?: string; productCode?: string } | null>(null);
   const [instrument, setInstrument] = useState<any>();
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   useEffect(() => {
     if (token)
       api<User>('/auth/me', {}, token)
@@ -170,6 +182,10 @@ export default function LegacyApp() {
   useEffect(() => {
     if (user) void connectInstrument();
   }, [user?.id]);
+  // 首次登录或管理员强制要求改密时，自动弹出修改密码提示（可关闭）
+  useEffect(() => {
+    if (user?.mustChangePassword) setPasswordModalOpen(true);
+  }, [user?.id]);
   if (!token || !user)
     return (
       <ConfigProvider locale={zhCN} theme={rimTheme}>
@@ -189,6 +205,12 @@ export default function LegacyApp() {
   const logout = () => {
     setToken(null);
     setUser(null);
+  };
+  // 从样品档案跳转到配方档案，并聚焦指定产品
+  const openFormulaProduct = (target: { productId?: string; productCode?: string }) => {
+    setFormulaFocus(target);
+    setActive('formulas');
+    setKeepAliveKeys((prev) => (prev.includes('formulas') ? prev : [...prev, 'formulas']));
   };
   return (
     <ConfigProvider locale={zhCN} theme={{ ...rimTheme, token: { ...rimTheme.token, fontSize: 14.5 } }}>
@@ -230,7 +252,7 @@ export default function LegacyApp() {
                         key: 'password',
                         icon: <KeyOutlined />,
                         label: '修改密码',
-                        onClick: () => setUser({ ...user, mustChangePassword: true }),
+                        onClick: () => setPasswordModalOpen(true),
                       },
                       { type: 'divider' },
                       { key: 'logout', icon: <LogoutOutlined />, danger: true, label: '退出登录', onClick: logout },
@@ -257,10 +279,14 @@ export default function LegacyApp() {
                       </ConfigProvider>
                     )}
                     {key === 'match' && <Match token={token} rights={user.permissions} />}
-                    {key === 'formulas' && <FormulasPage token={token} rights={user.permissions} />}
+                    {key === 'samples' && <SamplePage token={token} rights={user.permissions} onOpenFormulaProduct={openFormulaProduct} />}
+                    {key === 'formulas' && (
+                      <FormulasPage token={token} rights={user.permissions} focusProduct={formulaFocus} onFocusHandled={() => setFormulaFocus(null)} />
+                    )}
                     {key === 'inventory' && <InventoryPage token={token} rights={user.permissions} />}
                     {key === 'outbound' && <OutboundPage token={token} rights={user.permissions} />}
                     {key === 'statistics' && <StatisticsPage token={token} />}
+                    {key === 'dictionary' && <DictionaryPage token={token} />}
                     {key === 'users' && <UsersPage token={token} rights={user.permissions} />}
                     {key === 'backup' && <BackupPage token={token} rights={user.permissions} />}
                     {key === 'logs' && <LogsPage token={token} rights={user.permissions} />}
@@ -270,9 +296,15 @@ export default function LegacyApp() {
             </Layout.Content>
           </Layout>
         </Layout>
-        {user.mustChangePassword && (
-          <PasswordModal token={token} onDone={() => setUser({ ...user, mustChangePassword: false })} />
-        )}
+        <PasswordModal
+          token={token}
+          open={passwordModalOpen}
+          onClose={() => setPasswordModalOpen(false)}
+          onDone={() => {
+            setPasswordModalOpen(false);
+            setUser((current) => (current ? { ...current, mustChangePassword: false } : current));
+          }}
+        />
       </AntApp>
     </ConfigProvider>
   );
@@ -366,16 +398,37 @@ function Login({ onLogin }: { onLogin: (token: string, user: User) => void }) {
     </div>
   );
 }
-function PasswordModal({ token, onDone }: { token: string; onDone: () => void }) {
+function PasswordModal({
+  token,
+  open,
+  onClose,
+  onDone,
+}: {
+  token: string;
+  open: boolean;
+  onClose: () => void;
+  onDone: () => void;
+}) {
   const { message } = AntApp.useApp();
+  const [form] = Form.useForm();
   return (
-    <Modal open title="修改密码" closable={false} footer={null}>
+    <Modal
+      open={open}
+      title="修改密码"
+      maskClosable={false}
+      okText="确认修改"
+      cancelText="取消"
+      destroyOnHidden
+      onCancel={onClose}
+      onOk={() => form.submit()}
+    >
       <Form
+        form={form}
         layout="vertical"
         onFinish={async (value) => {
           try {
             await api('/auth/change-password', { method: 'POST', body: JSON.stringify(value) }, token);
-            message.success('密码已修改。');
+            message.success('密码已修改，请使用新密码重新登录。');
             onDone();
           } catch (error) {
             message.error(error instanceof Error ? error.message : '修改失败。');
@@ -385,12 +438,16 @@ function PasswordModal({ token, onDone }: { token: string; onDone: () => void })
         <Form.Item name="currentPassword" label="当前密码" rules={[{ required: true }]}>
           <Input.Password />
         </Form.Item>
-        <Form.Item name="newPassword" label="新密码" rules={[{ required: true, min: 8 }]}>
+        <Form.Item
+          name="newPassword"
+          label="新密码"
+          rules={[
+            { required: true, message: '请输入新密码。' },
+            { min: 8, message: '新密码至少 8 位。' },
+          ]}
+        >
           <Input.Password />
         </Form.Item>
-        <Button type="primary" htmlType="submit" block>
-          确认修改
-        </Button>
       </Form>
     </Modal>
   );
@@ -640,12 +697,14 @@ function Dashboard({ token }: { token: string }) {
       <div className="two-columns">
         <SimpleTable
           title="最近库存"
+          storageKey="dashboard-recent-inventory"
           extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
           rows={data.recentInventory}
           columns={['storageLocation', 'weightKg', 'colorFamily', 'createdAt']}
         />
         <SimpleTable
           title="最近出库"
+          storageKey="dashboard-recent-outbound"
           extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
           rows={data.recentOutbound}
           columns={['outboundNo', 'storageLocation', 'weightKg', 'outboundDate']}
@@ -833,9 +892,10 @@ function Match({ token, rights }: { token: string; rights: string[] }) {
         }
       >
         {historyOpen && (
-          <Table
+          <ReorderableTable
             rowKey="id"
             size="small"
+            storageKey="match-history"
             dataSource={history}
             onRow={(row) => ({
               onClick: () => matchFromHistory(row),
@@ -894,6 +954,7 @@ function Match({ token, rights }: { token: string; rights: string[] }) {
       {result && (
         <SimpleTable
           title={`颜色匹配结果（${result.formula ?? 'CIE94'} · 命中 ${result.matchCount ?? result.matches?.length ?? 0} / 在库 ${result.availableCount} 条）`}
+          storageKey="match-result"
           extra={<Button size="small" onClick={clearMatchResult}>清空</Button>}
           rows={result.matches}
           columns={[
@@ -1127,12 +1188,6 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
     render: print,
     ...(key === 'storageLocation' || key === 'rollerColorCode' ? { fixed: 'left' as const } : {}),
   }));
-  cols.splice(1, 0, {
-    title: '来源配方',
-    key: 'source',
-    width: 220,
-    render: (_: unknown, row: any) => sourceTag(row),
-  });
   cols.push({
     title: '操作',
     key: 'action',
@@ -1290,9 +1345,10 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
         </Card>
       )}
       <Card className="excel-grid-card">
-        <Table
+        <ReorderableTable
           rowKey="id"
           className="excel-style-table"
+          storageKey="inventory-ledger"
           dataSource={rows}
           columns={cols as any}
           pagination={{ defaultPageSize: 50, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
@@ -1536,6 +1592,7 @@ function OutboundPage({ token, rights }: { token: string; rights: string[] }) {
       </Card>
       <SimpleTable
         title="出库记录"
+        storageKey="outbound-records"
         extra={
           <Space wrap size={8} className="toolbar-actions">
             <Input
@@ -1743,6 +1800,7 @@ function UsersPage({ token, rights }: { token: string; rights: string[] }) {
       </Card>
       <SimpleTable
         title="用户"
+        storageKey="users-list"
         rows={users}
         columns={['username', 'displayName', 'roleName', 'enabled', 'mustChangePassword', 'lastLoginAt']}
         appendColumns={
@@ -1939,6 +1997,7 @@ function BackupPage({ token, rights }: { token: string; rights: string[] }) {
       </Card>
       <SimpleTable
         title="备份与恢复记录"
+        storageKey="backup-records"
         rows={rows}
         columns={['jobType', 'status', 'fileName', 'sha256', 'createdAt', 'finishedAt']}
       />
@@ -1977,6 +2036,7 @@ function LogsPage({ token, rights }: { token: string; rights: string[] }) {
       </Card>
       <SimpleTable
         title="操作日志"
+        storageKey="logs-list"
         rows={rows}
         columns={['operationTime', 'username', 'operationType', 'targetTable', 'targetId', 'remark', 'ipAddress']}
       />
@@ -2012,8 +2072,9 @@ function StatisticsPage({ token }: { token: string }) {
         </Space>
       </Card>
       <Card title={year + ' 年 ' + month + ' 月出入库日报'}>
-        <Table
+        <ReorderableTable
           rowKey="date"
+          storageKey="stats-daily-report"
           loading={!data}
           dataSource={days}
           pagination={false}
@@ -2081,9 +2142,10 @@ function DailyDetailModal({ date, token, onClose }: { date: string | null; token
           { key: 'outbound', label: '出库' },
         ]}
       />
-      <Table
-        rowKey={(row, index) => row.id ?? kind + '-' + index}
+      <ReorderableTable
+        rowKey="id"
         size="small"
+        storageKey="stats-daily-detail"
         loading={loading}
         dataSource={rows}
         pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
@@ -2136,17 +2198,20 @@ function SimpleTable({
   columns,
   extra,
   appendColumns,
+  storageKey,
 }: {
   title: string;
   rows: any[];
   columns: Array<string | Record<string, unknown>>;
   extra?: ReactNode;
   appendColumns?: any[];
+  storageKey?: string;
 }) {
   return (
     <Card title={title} extra={extra}>
-      <Table
-        rowKey={(row, index) => row.id ?? `${index}-${row.storageLocation ?? ''}`}
+      <ReorderableTable
+        rowKey="id"
+        storageKey={storageKey}
         dataSource={rows}
         pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
         scroll={{ x: true }}
@@ -2176,5 +2241,19 @@ function print(value: any) {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) return value.slice(0, 10);
   if (typeof value === 'number' && !Number.isInteger(value))
     return value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  if (typeof value === 'object') {
+    // 对象值一律不显示为 [object Object]
+    const obj = value as Record<string, unknown>;
+    const plateNo = obj?.plateNo ?? obj?.plate;
+    const colorSeq = obj?.colorSeq ?? obj?.seq;
+    if (plateNo != null || colorSeq != null)
+      return [plateNo, colorSeq].filter((item) => item != null && item !== '').join('/');
+    try {
+      const json = JSON.stringify(value);
+      return json === '{}' ? '' : json;
+    } catch {
+      return '';
+    }
+  }
   return String(value);
 }

@@ -423,8 +423,10 @@ fn start_local_services(app: &AppHandle, state: &RuntimeState) -> Result<(), Str
     let data_dir = database_root.join("data");
     let logs = runtime.join("logs");
     let backups = runtime.join("backups");
+    let photos = runtime.join("photos");
     fs::create_dir_all(&logs).map_err(|error| error.to_string())?;
     fs::create_dir_all(&backups).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&photos).map_err(|error| error.to_string())?;
     log_event("INFO", &format!("runtime directory: {}", runtime.display()));
     migrate_legacy_runtime(&runtime);
 
@@ -478,6 +480,7 @@ fn start_local_services(app: &AppHandle, state: &RuntimeState) -> Result<(), Str
     api_command
         .env("RIM_API_PORT", API_PORT.to_string())
         .env("RIM_BACKUP_DIR", backups)
+        .env("RIM_SAMPLE_PHOTO_DIR", photos)
         .env("JWT_SECRET", jwt_secret)
         .env(
             "DATABASE_URL",

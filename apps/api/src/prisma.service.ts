@@ -24,6 +24,11 @@ export const PERMISSIONS = [
   ['formula.edit', '编辑配方档案', 'formula'],
   ['formula.publish', '发布与停用配方', 'formula'],
   ['material.edit', '维护配方物料', 'formula'],
+  ['dictionary.manage', '管理数据字典', 'dictionary'],
+  ['sample.view', '查看样品档案', 'sample'],
+  ['sample.create', '新增样品档案', 'sample'],
+  ['sample.update', '编辑样品档案', 'sample'],
+  ['sample.delete', '删除样品档案', 'sample'],
 ] as const;
 
 const OPERATOR_DEFAULTS = [
@@ -40,6 +45,10 @@ const OPERATOR_DEFAULTS = [
   'formula.view',
   'formula.edit',
   'material.edit',
+  'sample.view',
+  'sample.create',
+  'sample.update',
+  'sample.delete',
 ];
 const USER_DEFAULTS = [
   'dashboard.view',
@@ -50,6 +59,7 @@ const USER_DEFAULTS = [
   'outbound.view',
   'outbound.export',
   'formula.view',
+  'sample.view',
 ];
 
 @Injectable()

@@ -1,10 +1,12 @@
 export const PAGE_CONTRACT = [
   ['dashboard', '智能工作台', 'dashboard.view'],
   ['match', '颜色匹配', 'match.view'],
+  ['samples', '样品档案', 'sample.view'],
   ['formulas', '配方档案', 'formula.view'],
   ['inventory', '余墨库存', 'inventory.view'],
   ['outbound', '余墨出库', 'outbound.view'],
   ['statistics', '出入库统计', 'dashboard.view'],
+  ['dictionary', '数据字典', 'dictionary.manage'],
   ['users', '用户权限', 'users.manage'],
   ['backup', '备份恢复', 'backup.manage'],
   ['logs', '操作日志', 'logs.view'],

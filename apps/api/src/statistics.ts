@@ -99,7 +99,14 @@ export class StatisticsService {
       const rows = await this.prisma.outboundRecord.findMany({
         where: { outboundDate: { gte: start, lt: end } },
         orderBy: [{ outboundNo: 'asc' }, { storageLocation: 'asc' }],
-        select: { outboundNo: true, storageLocation: true, rollerColorCode: true, weightKg: true, colorFamily: true },
+        select: {
+          id: true,
+          outboundNo: true,
+          storageLocation: true,
+          rollerColorCode: true,
+          weightKg: true,
+          colorFamily: true,
+        },
       });
       return {
         kind,
@@ -109,7 +116,7 @@ export class StatisticsService {
     const rows = await this.prisma.residualInk.findMany({
       where: { inboundDate: { gte: start, lt: end }, deletedAt: null },
       orderBy: { storageLocation: 'asc' },
-      select: { storageLocation: true, rollerColorCode: true, weightKg: true, colorFamily: true },
+      select: { id: true, storageLocation: true, rollerColorCode: true, weightKg: true, colorFamily: true },
     });
     return {
       kind,
