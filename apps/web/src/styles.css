@@ -122,8 +122,8 @@ body {
 }
 .rim-sider-logo {
   flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
   border-radius: 6px;
 }
@@ -950,7 +950,9 @@ body {
 .rim-about-logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  padding: 10px;
+  box-sizing: border-box;
+  object-fit: contain;
 }
 .rim-about-copyright {
   text-align: center;

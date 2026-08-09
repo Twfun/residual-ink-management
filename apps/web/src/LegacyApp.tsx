@@ -479,7 +479,7 @@ function PasswordModal({
 
 // 软件名称与当前版本（发布时同步更新）
 const APP_NAME = '产品信息管理系统';
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 const APP_HOMEPAGE = 'https://github.com/Twfun/residual-ink-management';
 const APP_EMAIL = '1242420395@qq.com';
 
