@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { App, AutoComplete, Button, Card, Col, Form, Image, Input, Modal, Row, Select, Space, Tag, Upload } from 'antd';
-import { BookOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import { BookOutlined, ClearOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import { api, API } from './api';
 import { ReorderableTable } from './components/ReorderableTable';
@@ -61,8 +61,12 @@ export function SamplePage({
   const { message, modal } = App.useApp();
   const [rows, setRows] = useState<Sample[]>([]);
   const [keyword, setKeyword] = useState('');
+  const [filterCustomer, setFilterCustomer] = useState<string | undefined>(undefined);
+  const [filterStorageLocation, setFilterStorageLocation] = useState<string | undefined>(undefined);
+  const [filterSampleType, setFilterSampleType] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [customerOptions, setCustomerOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [storageOptions, setStorageOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [editing, setEditing] = useState<Sample | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -79,7 +83,12 @@ export function SamplePage({
   const load = async (nextKeyword = keyword) => {
     setLoading(true);
     try {
-      const query = nextKeyword ? `?keyword=${encodeURIComponent(nextKeyword)}` : '';
+      const params = new URLSearchParams();
+      if (nextKeyword) params.set('keyword', nextKeyword);
+      if (filterCustomer) params.set('customer', filterCustomer);
+      if (filterStorageLocation) params.set('storageLocation', filterStorageLocation);
+      if (filterSampleType) params.set('sampleType', filterSampleType);
+      const query = params.toString() ? `?${params.toString()}` : '';
       const result = await api<Sample[]>(`/samples${query}`, {}, token);
       setRows(Array.isArray(result) ? result : []);
     } catch (error) {
@@ -93,7 +102,18 @@ export function SamplePage({
     api<{ rows: Array<{ value: string; label: string }> }>('/samples/customer-options', {}, token)
       .then((result) => setCustomerOptions(result.rows ?? []))
       .catch(() => undefined);
+    api<{ rows: Array<{ value: string; label: string }> }>('/samples/storage-locations', {}, token)
+      .then((result) => setStorageOptions(result.rows ?? []))
+      .catch(() => undefined);
   }, [token]);
+
+  const resetFilters = () => {
+    setKeyword('');
+    setFilterCustomer(undefined);
+    setFilterStorageLocation(undefined);
+    setFilterSampleType(undefined);
+    void load('');
+  };
 
   const searchProducts = async (keywordValue: string) => {
     try {
@@ -216,10 +236,38 @@ export function SamplePage({
 
   const toolbar = (
     <Space wrap size={8}>
+      <Select
+        allowClear
+        showSearch
+        placeholder="客户筛选"
+        style={{ width: 150 }}
+        value={filterCustomer}
+        options={customerOptions}
+        optionFilterProp="label"
+        onChange={(value) => setFilterCustomer(value)}
+      />
+      <Select
+        allowClear
+        showSearch
+        placeholder="存放位置"
+        style={{ width: 150 }}
+        value={filterStorageLocation}
+        options={storageOptions}
+        optionFilterProp="label"
+        onChange={(value) => setFilterStorageLocation(value)}
+      />
+      <Select
+        allowClear
+        placeholder="样品类型"
+        style={{ width: 120 }}
+        value={filterSampleType}
+        options={SAMPLE_TYPE_OPTIONS}
+        onChange={(value) => setFilterSampleType(value)}
+      />
       <Input
         allowClear
-        placeholder="客户 / 存放位置 / 编号 / 产品编码 / 产品名称"
-        style={{ width: 280 }}
+        placeholder="编号 / 产品编码 / 产品名称"
+        style={{ width: 220 }}
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         onPressEnter={() => void load()}
@@ -227,12 +275,7 @@ export function SamplePage({
       <Button type="primary" icon={<SearchOutlined />} onClick={() => void load()}>
         查询
       </Button>
-      <Button
-        onClick={() => {
-          setKeyword('');
-          void load('');
-        }}
-      >
+      <Button icon={<ClearOutlined />} onClick={resetFilters}>
         清空
       </Button>
     </Space>

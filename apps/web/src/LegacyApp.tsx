@@ -220,9 +220,9 @@ export default function LegacyApp() {
         <Layout className="rim-shell">
           <Layout.Sider className="enterprise-sider" width={220} collapsedWidth={72} collapsible>
             <div className="rim-brand">
-              <img src={loginLogo} alt="余墨管理系统标识" className="rim-sider-logo" />
+              <img src={loginLogo} alt="产品信息管理系统标识" className="rim-sider-logo" />
               <span>
-                <b>余墨管理系统</b>
+                <b>产品信息管理系统</b>
                 <small>企业数据工作台</small>
               </span>
             </div>
@@ -349,8 +349,8 @@ function Login({ onLogin }: { onLogin: (token: string, user: User) => void }) {
         <img className="login-visual-bg" src={loginScene} alt="" />
         <div className="login-visual-shade" />
         <header className="login-brand">
-          <img src={loginLogo} alt="余墨管理系统标识" />
-          <span>余墨管理系统</span>
+          <img src={loginLogo} alt="产品信息管理系统标识" />
+          <span>产品信息管理系统</span>
         </header>
         <div className="login-arcs" />
       </section>
@@ -402,7 +402,7 @@ function Login({ onLogin }: { onLogin: (token: string, user: User) => void }) {
             </Button>
           </Form>
         </div>
-        <footer className="login-footer">© 2026 余墨管理系统　保留所有权利</footer>
+        <footer className="login-footer">© 2026 产品信息管理系统　保留所有权利</footer>
       </section>
     </div>
   );
@@ -463,8 +463,8 @@ function PasswordModal({
 }
 
 // 软件名称与当前版本（发布时同步更新）
-const APP_NAME = '余墨管理系统';
-const APP_VERSION = '1.11.0';
+const APP_NAME = '产品信息管理系统';
+const APP_VERSION = '1.12.0';
 const APP_HOMEPAGE = 'https://github.com/Twfun/residual-ink-management';
 const APP_EMAIL = '1242420395@qq.com';
 

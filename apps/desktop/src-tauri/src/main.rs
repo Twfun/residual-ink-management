@@ -415,7 +415,7 @@ fn start_local_services(app: &AppHandle, state: &RuntimeState) -> Result<(), Str
     // outdated backend. Refuse to start instead of connecting to a stale service.
     if port_in_use(API_PORT) || port_in_use(DATABASE_PORT) {
         return Err(format!(
-            "检测到残留的余墨管理服务进程（端口 {API_PORT} / {DATABASE_PORT} 已被占用），继续运行会连接到旧版本服务。请关闭所有余墨管理系统窗口，并在任务管理器中结束 residual-ink-api 与 mariadbd/mysqld 进程后重新打开。"
+            "检测到残留的产品信息管理服务进程（端口 {API_PORT} / {DATABASE_PORT} 已被占用），继续运行会连接到旧版本服务。请关闭所有产品信息管理系统窗口，并在任务管理器中结束 residual-ink-api 与 mariadbd/mysqld 进程后重新打开。"
         ));
     }
     let runtime = runtime_root();

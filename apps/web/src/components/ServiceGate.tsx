@@ -77,44 +77,52 @@ export function ServiceGate({ children }: { children: ReactNode }) {
     <ConfigProvider locale={zhCN} theme={rimTheme}>
       <AntApp>
         <div className="service-gate">
-          {status?.startupError ? (
-            <div className="service-gate-panel">
-              <Alert
-                type="error"
-                showIcon
-                message="本地服务启动失败"
-                description={
-                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                    <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
-                      {status.startupError}
-                    </Typography.Paragraph>
-                    <Typography.Text type="secondary" copyable={{ text: status.logDirectory }}>
-                      日志目录：{status.logDirectory}
-                    </Typography.Text>
-                    <Space>
-                      <Button type="primary" icon={<ReloadOutlined />} loading={retrying} onClick={retry}>
-                        重试启动
-                      </Button>
-                      <Button icon={<FolderOpenOutlined />} onClick={openLogs}>
-                        打开日志目录
-                      </Button>
-                    </Space>
-                    {logLines.length > 0 && <pre className="service-gate-log">{logLines.join('\n')}</pre>}
-                  </Space>
-                }
-              />
+          <div className="service-gate-window">
+            <div className="service-gate-titlebar">
+              <span className="service-gate-title">产品信息管理系统</span>
+              <span className="service-gate-subtitle">正在启动本地服务</span>
             </div>
-          ) : (
-            <Space direction="vertical" align="center" size={16}>
-              <Spin size="large" />
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                正在启动本地服务…
-              </Typography.Title>
-              <Typography.Text type="secondary">
-                首次启动需要初始化数据库，可能等待 1~2 分钟，请勿关闭窗口。
-              </Typography.Text>
-            </Space>
-          )}
+            <div className="service-gate-body">
+              {status?.startupError ? (
+                <div className="service-gate-panel">
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="本地服务启动失败"
+                    description={
+                      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                        <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+                          {status.startupError}
+                        </Typography.Paragraph>
+                        <Typography.Text type="secondary" copyable={{ text: status.logDirectory }}>
+                          日志目录：{status.logDirectory}
+                        </Typography.Text>
+                        <Space>
+                          <Button type="primary" icon={<ReloadOutlined />} loading={retrying} onClick={retry}>
+                            重试启动
+                          </Button>
+                          <Button icon={<FolderOpenOutlined />} onClick={openLogs}>
+                            打开日志目录
+                          </Button>
+                        </Space>
+                        {logLines.length > 0 && <pre className="service-gate-log">{logLines.join('\n')}</pre>}
+                      </Space>
+                    }
+                  />
+                </div>
+              ) : (
+                <Space direction="vertical" align="center" size={16}>
+                  <Spin size="large" />
+                  <Typography.Title level={5} style={{ margin: 0 }}>
+                    正在启动本地服务…
+                  </Typography.Title>
+                  <Typography.Text type="secondary" style={{ textAlign: 'center' }}>
+                    首次启动需要初始化数据库，可能等待 1~2 分钟，请勿关闭窗口。
+                  </Typography.Text>
+                </Space>
+              )}
+            </div>
+          </div>
         </div>
       </AntApp>
     </ConfigProvider>

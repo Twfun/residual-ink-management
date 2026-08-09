@@ -1,4 +1,4 @@
-# 余墨管理系统（Residual Ink Management）
+# 产品信息管理系统
 
 一套面向印刷/油墨调色场景的**余墨库存管理系统**，独立简易版。包含 React Web 前端、NestJS API 后端、Prisma ORM、内置 MariaDB 数据库，以及 Tauri 打包的 Windows x64 桌面安装包，支持 X-Rite eXact 分光测色仪联机测量。
 
@@ -19,7 +19,7 @@
 
 ## 安装使用（普通用户）
 
-1. 前往 [Releases](https://github.com/Twfun/residual-ink-management/releases) 页面，下载最新版安装包 `余墨管理系统_x.x.x_x64-setup.exe`。
+1. 前往 [Releases](https://github.com/Twfun/residual-ink-management/releases) 页面，下载最新版安装包 `产品信息管理系统_x.x.x_x64-setup.exe`。
 2. 双击运行安装程序，按向导完成安装（仅支持 Windows x64）。
 3. 首次启动后使用默认账号登录：
    - 用户名：`admin`

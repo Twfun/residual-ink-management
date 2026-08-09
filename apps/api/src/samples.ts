@@ -89,20 +89,28 @@ export class SampleService {
     return sample;
   }
 
-  async list(query: { keyword?: string }) {
+  async list(query: { keyword?: string; customer?: string; storageLocation?: string; sampleType?: string }) {
     const keyword = text(query.keyword, 80);
+    const customer = text(query.customer, 200);
+    const storageLocation = text(query.storageLocation, 120);
+    const sampleTypeValue = text(query.sampleType, 20);
+    const conditions: Array<Record<string, unknown>> = [];
+    if (keyword) {
+      conditions.push({
+        OR: [
+          { customer: { contains: keyword } },
+          { storageLocation: { contains: keyword } },
+          { code: { contains: keyword } },
+          { productCode: { contains: keyword } },
+          { productName: { contains: keyword } },
+        ],
+      });
+    }
+    if (customer) conditions.push({ customer });
+    if (storageLocation) conditions.push({ storageLocation });
+    if (sampleTypeValue) conditions.push({ sampleType: sampleTypeValue });
     return this.prisma.sampleArchive.findMany({
-      where: keyword
-        ? {
-            OR: [
-              { customer: { contains: keyword } },
-              { storageLocation: { contains: keyword } },
-              { code: { contains: keyword } },
-              { productCode: { contains: keyword } },
-              { productName: { contains: keyword } },
-            ],
-          }
-        : {},
+      where: conditions.length ? { AND: conditions } : {},
       include: {
         photos: { orderBy: { sortOrder: 'asc' } },
         product: { select: { id: true, code: true, name: true } },
@@ -118,6 +126,20 @@ export class SampleService {
       select: { id: true, name: true },
     });
     return { rows: rows.map((row) => ({ value: row.name, label: row.name, id: row.id.toString() })) };
+  }
+
+  async storageLocationOptions() {
+    const rows = await this.prisma.sampleArchive.findMany({
+      where: { storageLocation: { not: null } },
+      orderBy: { storageLocation: 'asc' },
+      distinct: ['storageLocation'],
+      select: { storageLocation: true },
+    });
+    return {
+      rows: rows
+        .filter((row) => row.storageLocation)
+        .map((row) => ({ value: row.storageLocation as string, label: row.storageLocation as string })),
+    };
   }
 
   async productOptions(query: { keyword?: string; limit?: unknown }) {
@@ -317,7 +339,7 @@ export class SamplesController {
 
   @RequirePermissions('sample.view')
   @Get()
-  list(@Query() query: { keyword?: string }) {
+  list(@Query() query: { keyword?: string; customer?: string; storageLocation?: string; sampleType?: string }) {
     return this.samples.list(query);
   }
 
@@ -331,6 +353,12 @@ export class SamplesController {
   @Get('customer-options')
   customerOptions() {
     return this.samples.customerOptions();
+  }
+
+  @RequirePermissions('sample.view')
+  @Get('storage-locations')
+  storageLocationOptions() {
+    return this.samples.storageLocationOptions();
   }
 
   @RequirePermissions('sample.create')
