@@ -156,6 +156,7 @@ export default function LegacyApp() {
   const [user, setUser] = useState<User | null>(null);
   const [active, setActive] = useState<PageKey>('dashboard');
   const [keepAliveKeys, setKeepAliveKeys] = useState<PageKey[]>(['dashboard']);
+  const [siderCollapsed, setSiderCollapsed] = useState(false);
   // 从样品档案跳转到配方档案时，需要聚焦的产品目标
   const [formulaFocus, setFormulaFocus] = useState<{ productId?: string; productCode?: string } | null>(null);
   const [instrument, setInstrument] = useState<any>();
@@ -218,7 +219,14 @@ export default function LegacyApp() {
     <ConfigProvider locale={zhCN} theme={{ ...rimTheme, token: { ...rimTheme.token, fontSize: 14.5 } }}>
       <AntApp>
         <Layout className="rim-shell">
-          <Layout.Sider className="enterprise-sider" width={220} collapsedWidth={72} collapsible>
+          <Layout.Sider
+            className="enterprise-sider"
+            width={220}
+            collapsedWidth={72}
+            collapsible
+            collapsed={siderCollapsed}
+            onCollapse={setSiderCollapsed}
+          >
             <div className="rim-brand">
               <img src={loginLogo} alt="产品信息管理系统标识" className="rim-sider-logo" />
               <span>
@@ -228,6 +236,7 @@ export default function LegacyApp() {
             </div>
             <Menu
               mode="inline"
+              inlineCollapsed={siderCollapsed}
               selectedKeys={[active]}
               items={items}
               onClick={({ key }) => {
@@ -464,7 +473,7 @@ function PasswordModal({
 
 // 软件名称与当前版本（发布时同步更新）
 const APP_NAME = '产品信息管理系统';
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.12.1';
 const APP_HOMEPAGE = 'https://github.com/Twfun/residual-ink-management';
 const APP_EMAIL = '1242420395@qq.com';
 

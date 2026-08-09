@@ -1,6 +1,6 @@
 {
   "name": "@residual-ink-management/api",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "private": true,
   "scripts": {
     "start": "node dist/main.js",
