@@ -21,6 +21,7 @@ import dayjs from 'dayjs';
 import { api } from './api';
 import { MeasureModal } from './components/MeasureModal';
 import { ReorderableTable } from './components/ReorderableTable';
+import PageHeader from './components/PageHeader';
 import type { XriteMeasurement } from './labColor';
 
 const MATERIAL_TYPE_LABELS: Record<string, string> = { ink: '油墨', solvent: '溶剂', additive: '添加剂' };
@@ -38,7 +39,7 @@ function num(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function MaterialsPage({ token, rights, embedded }: { token: string; rights: string[]; embedded?: boolean }) {
+function MaterialsPage({ token, rights, embedded }: { token: string; rights: string[]; embedded?: boolean }) {
   const { message } = AntApp.useApp();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -405,9 +406,10 @@ export function FormulasPage({
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card
+      <PageHeader
         title="配方档案"
-        extra={
+        desc="配方产品与色条配方管理"
+        actions={
           <Space wrap>
             <Input.Search
               allowClear
@@ -424,7 +426,8 @@ export function FormulasPage({
             )}
           </Space>
         }
-      >
+      />
+      <Card>
         <ReorderableTable
           rowKey="id"
           size="small"

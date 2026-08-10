@@ -53,6 +53,10 @@ await mkdir(databaseDir, { recursive: true });
 if (!(await exists(resolve(mariaTarget, 'bin/mysqld.exe')))) {
   await cp(mariaSource, mariaTarget, { recursive: true, force: false });
 }
+// The bundled MariaDB must ship without a pre-populated `data` directory: it is
+// initialized fresh at runtime by mariadb-install-db.exe. Never bundle dev/test
+// databases, which also hold locked log files that break NSIS packaging.
+await rm(resolve(mariaTarget, 'data'), { recursive: true, force: true });
 const prismaCli = resolve(root, 'node_modules/prisma/build/index.js');
 const schema = execFileSync(
   process.execPath,

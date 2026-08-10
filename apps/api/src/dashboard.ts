@@ -12,7 +12,7 @@ export function pad(value: number) {
 export function dayKey(date: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
-export function weekStart(date: Date) {
+function weekStart(date: Date) {
   const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const dow = (copy.getDay() + 6) % 7; // Monday = 0
   copy.setDate(copy.getDate() - dow);

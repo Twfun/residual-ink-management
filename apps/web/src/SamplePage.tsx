@@ -4,6 +4,7 @@ import { BookOutlined, ClearOutlined, DeleteOutlined, EditOutlined, PlusOutlined
 import type { UploadFile } from 'antd';
 import { api, API } from './api';
 import { ReorderableTable } from './components/ReorderableTable';
+import PageHeader from './components/PageHeader';
 import { EmptyState } from './components/ui';
 
 const SAMPLE_TYPE_OPTIONS = [
@@ -235,65 +236,64 @@ export function SamplePage({
   };
 
   const toolbar = (
-    <Space wrap size={8}>
-      <Select
-        allowClear
-        showSearch
-        placeholder="客户筛选"
-        style={{ width: 150 }}
-        value={filterCustomer}
-        options={customerOptions}
-        optionFilterProp="label"
-        onChange={(value) => setFilterCustomer(value)}
-      />
-      <Select
-        allowClear
-        showSearch
-        placeholder="存放位置"
-        style={{ width: 150 }}
-        value={filterStorageLocation}
-        options={storageOptions}
-        optionFilterProp="label"
-        onChange={(value) => setFilterStorageLocation(value)}
-      />
-      <Select
-        allowClear
-        placeholder="样品类型"
-        style={{ width: 120 }}
-        value={filterSampleType}
-        options={SAMPLE_TYPE_OPTIONS}
-        onChange={(value) => setFilterSampleType(value)}
-      />
-      <Input
-        allowClear
-        placeholder="编号 / 产品编码 / 产品名称"
-        style={{ width: 220 }}
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        onPressEnter={() => void load()}
-      />
-      <Button type="primary" icon={<SearchOutlined />} onClick={() => void load()}>
-        查询
-      </Button>
-      <Button icon={<ClearOutlined />} onClick={resetFilters}>
-        清空
-      </Button>
-    </Space>
+    <div className="page-toolbar-row">
+      <Space wrap size={8}>
+        <Select
+          allowClear
+          showSearch
+          placeholder="客户筛选"
+          style={{ width: 150 }}
+          value={filterCustomer}
+          options={customerOptions}
+          optionFilterProp="label"
+          onChange={(value) => setFilterCustomer(value)}
+        />
+        <Select
+          allowClear
+          showSearch
+          placeholder="存放位置"
+          style={{ width: 150 }}
+          value={filterStorageLocation}
+          options={storageOptions}
+          optionFilterProp="label"
+          onChange={(value) => setFilterStorageLocation(value)}
+        />
+        <Select
+          allowClear
+          placeholder="样品类型"
+          style={{ width: 120 }}
+          value={filterSampleType}
+          options={SAMPLE_TYPE_OPTIONS}
+          onChange={(value) => setFilterSampleType(value)}
+        />
+        <Input
+          allowClear
+          placeholder="编号 / 产品编码 / 产品名称"
+          style={{ width: 220 }}
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onPressEnter={() => void load()}
+        />
+        <Button type="primary" icon={<SearchOutlined />} onClick={() => void load()}>
+          查询
+        </Button>
+        <Button icon={<ClearOutlined />} onClick={resetFilters}>
+          清空
+        </Button>
+      </Space>
+      {canCreate && (
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+          新增样品
+        </Button>
+      )}
+    </div>
   );
 
   return (
     <>
+      <PageHeader title="样品档案" desc="客户样品登记与检索" />
       <Card className="page-toolbar">{toolbar}</Card>
-      <Card
-        title="样品档案"
-        extra={
-          canCreate ? (
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              新增样品
-            </Button>
-          ) : undefined
-        }
-      >
+      <Card title="样品档案">
         <ReorderableTable
           rowKey="id"
           storageKey="samples"

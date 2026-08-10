@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Tabs, Typography } from 'antd';
+import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Tabs } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { api } from './api';
 import { ReorderableTable } from './components/ReorderableTable';
+import PageHeader from './components/PageHeader';
 import { EmptyState } from './components/ui';
 import { COLOR_FAMILY_OPTIONS } from './contracts';
 
@@ -279,11 +280,10 @@ function DictionaryGrid({ config, token }: { config: DictConfig; token: string }
 export function DictionaryPage({ token }: { token: string }) {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card>
-        <Typography.Text type="secondary">
-          维护系统基础数据字典，供入库、出库、配方等模块引用。共 {DICT_CONFIGS.length} 类。
-        </Typography.Text>
-      </Card>
+      <PageHeader
+        title="数据字典"
+        desc={`维护系统基础数据字典，供入库、出库、配方等模块引用。共 ${DICT_CONFIGS.length} 类。`}
+      />
       <Tabs
         defaultActiveKey="ink-colors"
         items={DICT_CONFIGS.map((config) => ({

@@ -17,7 +17,6 @@ import {
   Segmented,
   Select,
   Space,
-  Statistic,
   Switch,
   Table,
   Tabs,
@@ -51,7 +50,7 @@ import {
   UpOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import zhCN from 'antd/locale/zh_CN';
@@ -63,8 +62,9 @@ import { SamplePage } from './SamplePage';
 import { MeasureModal } from './components/MeasureModal';
 import { PantoneLibraryModal } from './components/PantoneLibraryModal';
 import { ReorderableTable } from './components/ReorderableTable';
+import PageHeader from './components/PageHeader';
 import { EmptyState, MetricCard } from './components/ui';
-import { RIM, rimTheme } from './theme';
+import { MODULE_COLORS, RIM, rimTheme } from './theme';
 import type { XriteMeasurement } from './labColor';
 import {
   COLOR_FAMILY_OPTIONS,
@@ -221,8 +221,8 @@ export default function LegacyApp() {
         <Layout className={`rim-shell mod-${active}`}>
           <Layout.Sider
             className="enterprise-sider"
-            width={220}
-            collapsedWidth={72}
+            width={200}
+            collapsedWidth={64}
             collapsible
             collapsed={siderCollapsed}
             onCollapse={setSiderCollapsed}
@@ -248,13 +248,7 @@ export default function LegacyApp() {
           </Layout.Sider>
           <Layout>
             <Layout.Header className="enterprise-topbar">
-              <div className="enterprise-title">
-                <div className="enterprise-breadcrumb">业务中心 / {labels[active]}</div>
-                <div className="enterprise-title-row">
-                  <span className="enterprise-title-bar" />
-                  <Typography.Title level={4}>{labels[active]}</Typography.Title>
-                </div>
-              </div>
+              <div className="enterprise-breadcrumb">业务中心 / {labels[active]}</div>
               <Space>
                 <Tag color={instrument?.connected ? 'green' : 'default'}>
                   {instrument?.connected ? '仪器已连接' : '仪器未连接'}
@@ -298,7 +292,14 @@ export default function LegacyApp() {
                   >
                     {key === 'dashboard' && (
                       <ConfigProvider theme={{ token: { fontSize: 12.5 } }}>
-                        <Dashboard token={token} />
+                        <Dashboard
+                          token={token}
+                          rights={user.permissions}
+                          onNavigate={(target) => {
+                            setActive(target);
+                            setKeepAliveKeys((prev) => (prev.includes(target) ? prev : [...prev, target]));
+                          }}
+                        />
                       </ConfigProvider>
                     )}
                     {key === 'match' && <Match token={token} rights={user.permissions} />}
@@ -615,16 +616,31 @@ function locationRankOption(rows: Array<{ storageLocation: string; weightKg: num
   };
 }
 
-function Dashboard({ token }: { token: string }) {
-  const [data, setData] = useState<any>();
+const MODULE_DESCRIPTIONS: Record<PageKey, string> = {
+  dashboard: '',
+  match: '测色、检索相似色与可复用余墨',
+  samples: '产品专色样品建档与查询',
+  formulas: '配方版本管理与调色记录',
+  inventory: '余墨入库、台账与库位管理',
+  outbound: '出库单创建与出库记录',
+  statistics: '出入库趋势图表与月度日报',
+  dictionary: '色系、库位等基础数据维护',
+  users: '账号、角色与权限分配',
+  backup: '数据备份任务与恢复',
+  logs: '操作审计日志查询',
+};
+
+function Dashboard({
+  token,
+  rights,
+  onNavigate,
+}: {
+  token: string;
+  rights: string[];
+  onNavigate: (key: PageKey) => void;
+}) {
   const [period, setPeriod] = useState<string>('all');
-  const [inDimension, setInDimension] = useState<DimensionKey>('day');
-  const [outDimension, setOutDimension] = useState<DimensionKey>('day');
-  const [inBuckets, setInBuckets] = useState<SeriesBucket[]>([]);
-  const [outBuckets, setOutBuckets] = useState<SeriesBucket[]>([]);
-  const [colorDist, setColorDist] = useState<Array<{ colorFamily: string; count: number }>>([]);
-  const [weightDist, setWeightDist] = useState<Array<{ label: string; count: number }>>([]);
-  const [locationRank, setLocationRank] = useState<Array<{ storageLocation: string; weightKg: number }>>([]);
+  const [data, setData] = useState<any>();
   useEffect(() => {
     const params = new URLSearchParams();
     if (period !== 'all') params.set('period', period);
@@ -633,6 +649,73 @@ function Dashboard({ token }: { token: string }) {
       .then(setData)
       .catch((error) => console.error('dashboard load failed', error));
   }, [token, period]);
+  const periodLabel = PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? '全部';
+  // 模块入口按权限过滤，点击跳转到对应页面
+  const modules = pages.filter(([key, , right]) => key !== 'dashboard' && rights.includes(right));
+  return (
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader
+        title="智能工作台"
+        desc="业务模块入口与最近出入库概览"
+        actions={
+          <Segmented
+            size="small"
+            value={period}
+            onChange={(value) => setPeriod(value as string)}
+            options={PERIOD_OPTIONS}
+          />
+        }
+      />
+      <div className="module-grid">
+        {modules.map(([key, label, , icon]) => (
+          <Card
+            key={key}
+            hoverable
+            className="module-card"
+            style={{ '--module-color': MODULE_COLORS[key] } as CSSProperties}
+            onClick={() => onNavigate(key)}
+          >
+            <span className="module-card-icon">{icon}</span>
+            <span className="module-card-text">
+              <span className="module-card-label">{label}</span>
+              <span className="module-card-desc">{MODULE_DESCRIPTIONS[key]}</span>
+            </span>
+          </Card>
+        ))}
+      </div>
+      {!data ? (
+        <Card loading />
+      ) : (
+        <div className="two-columns">
+          <SimpleTable
+            title="最近库存"
+            storageKey="dashboard-recent-inventory"
+            extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
+            rows={data.recentInventory}
+            columns={['storageLocation', 'weightKg', 'colorFamily', 'createdAt']}
+          />
+          <SimpleTable
+            title="最近出库"
+            storageKey="dashboard-recent-outbound"
+            extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
+            rows={data.recentOutbound}
+            columns={['outboundNo', 'storageLocation', 'weightKg', 'outboundDate']}
+          />
+        </div>
+      )}
+    </Space>
+  );
+}
+
+/** 出入库趋势与库存分布图表，集中展示在统计分析页 */
+function InventoryCharts({ token }: { token: string }) {
+  const [inDimension, setInDimension] = useState<DimensionKey>('day');
+  const [outDimension, setOutDimension] = useState<DimensionKey>('day');
+  const [inBuckets, setInBuckets] = useState<SeriesBucket[]>([]);
+  const [outBuckets, setOutBuckets] = useState<SeriesBucket[]>([]);
+  const [colorDist, setColorDist] = useState<Array<{ colorFamily: string; count: number }>>([]);
+  const [weightDist, setWeightDist] = useState<Array<{ label: string; count: number }>>([]);
+  const [locationRank, setLocationRank] = useState<Array<{ storageLocation: string; weightKg: number }>>([]);
   useEffect(() => {
     api(`/dashboard/series?dimension=${inDimension}`, {}, token).then((result: any) =>
       setInBuckets(result.buckets ?? []),
@@ -648,34 +731,8 @@ function Dashboard({ token }: { token: string }) {
     api<any>('/dashboard/weight-distribution', {}, token).then((result) => setWeightDist(result.buckets ?? []));
     api<any>('/dashboard/location-rank?limit=10', {}, token).then((result) => setLocationRank(result.rows ?? []));
   }, [token]);
-  if (!data) return <Card loading />;
-  const s = data.statistics;
-  const periodLabel = PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? '全部';
-  const scoped = (allLabel: string, scopedLabel: string) =>
-    period === 'all' ? allLabel : `${periodLabel}${scopedLabel}`;
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="page-toolbar">
-        <Space wrap size={8}>
-          <span>统计周期</span>
-          <Segmented
-            size="small"
-            value={period}
-            onChange={(value) => setPeriod(value as string)}
-            options={PERIOD_OPTIONS}
-          />
-        </Space>
-      </Card>
-      <div className="metric-grid">
-        <MetricCard title={scoped('在库条数', '入库·在库条数')} value={s.inStockCount} />
-        <MetricCard
-          title={scoped('已知重量合计', '入库·已知重量')}
-          value={s.knownWeightKg ?? '—'}
-          suffix={s.knownWeightKg === null ? '' : 'kg'}
-        />
-        <MetricCard title={scoped('未知重量条数', '入库·未知重量条数')} value={s.unknownWeightCount} />
-        <MetricCard title={scoped('出库单 / 明细', '出库单 / 明细')} value={`${s.outboundOrders} / ${s.outboundLines}`} />
-      </div>
       <div className="two-columns">
         <Card
           title="入库数量趋势"
@@ -763,25 +820,10 @@ function Dashboard({ token }: { token: string }) {
           {locationRank.length ? <EChart option={locationRankOption(locationRank)} height={300} /> : <EmptyState />}
         </Card>
       </div>
-      <div className="two-columns">
-        <SimpleTable
-          title="最近库存"
-          storageKey="dashboard-recent-inventory"
-          extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
-          rows={data.recentInventory}
-          columns={['storageLocation', 'weightKg', 'colorFamily', 'createdAt']}
-        />
-        <SimpleTable
-          title="最近出库"
-          storageKey="dashboard-recent-outbound"
-          extra={<Typography.Text type="secondary">{periodLabel}记录</Typography.Text>}
-          rows={data.recentOutbound}
-          columns={['outboundNo', 'storageLocation', 'weightKg', 'outboundDate']}
-        />
-      </div>
     </Space>
   );
 }
+
 function Match({ token, rights }: { token: string; rights: string[] }) {
   const { message } = AntApp.useApp();
   const [result, setResult] = useState<any>();
@@ -906,6 +948,7 @@ function Match({ token, rights }: { token: string; rights: string[] }) {
   };
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader title="颜色匹配" desc="输入目标 Lab 值，查找最接近的配方" />
       <Card title="目标颜色">
         <Form form={form} layout="inline" className="match-form-inline" onFinish={search}>
           <Form.Item name="l" label="L" rules={[{ required: true }]}>
@@ -1163,6 +1206,7 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
   const [deletedRows, setDeletedRows] = useState<any[]>([]);
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [filterForm] = Form.useForm();
+  const [invStats, setInvStats] = useState<any>(null);
   const buildQuery = (values: Record<string, unknown>) => {
     const query = new URLSearchParams();
     if (values.keyword) query.set('keyword', String(values.keyword));
@@ -1177,10 +1221,19 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
     }
     return query.toString();
   };
+  const loadInvStats = async () => {
+    try {
+      const result = await api<any>('/dashboard', {}, token);
+      setInvStats(result.statistics);
+    } catch {
+      setInvStats(null);
+    }
+  };
   const load = async (nextFilters = filters) => {
     try {
       const q = buildQuery(nextFilters);
       setRows((await api<any>(`/inventory${q ? `?${q}` : ''}`, {}, token)).rows);
+      void loadInvStats();
     } catch (error) {
       message.error(error instanceof Error ? error.message : '加载失败。');
     }
@@ -1292,6 +1345,72 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
   };
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader
+        title="余墨库存"
+        desc="在库余墨的检索、导入与导出"
+        actions={
+          <Space wrap>
+            {rights.includes('inventory.delete') && (
+              <Dropdown
+                open={deletedOpen}
+                onOpenChange={(open) => {
+                  setDeletedOpen(open);
+                  if (open) void loadDeleted();
+                }}
+                trigger={['click']}
+                dropdownRender={() => (
+                  <div className="deleted-panel">
+                    <div className="deleted-panel-title">最近删除（{deletedRows.length}）</div>
+                    {deletedRows.length === 0 && <EmptyState text="暂无最近删除的记录" />}
+                    {deletedRows.map((row) => (
+                      <div className="deleted-row" key={row.id}>
+                        <div className="deleted-row-main">
+                          <b>{row.storageLocation}</b>
+                          <small>{row.deletedAt ? dayjs(row.deletedAt).format('YYYY-MM-DD HH:mm') : ''} 删除</small>
+                        </div>
+                        <Space size={4}>
+                          <Button size="small" type="link" onClick={() => void restoreInventory(row)}>
+                            恢复
+                          </Button>
+                          <Button size="small" type="link" danger onClick={() => purgeInventory(row)}>
+                            清理
+                          </Button>
+                        </Space>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              >
+                <Button icon={<DeleteOutlined />}>最近删除</Button>
+              </Dropdown>
+            )}
+            {rights.includes('inventory.export') && (
+              <Button icon={<ExportOutlined />} loading={exporting} onClick={exportInventory}>
+                导出 Excel
+              </Button>
+            )}
+            <Upload accept=".xlsx,.xlsm" beforeUpload={upload} showUploadList={false}>
+              <Button icon={<FileExcelOutlined />}>Excel 导入预检</Button>
+            </Upload>
+            {rights.includes('inventory.create') && (
+              <Button type="primary" onClick={() => setEditing({})}>
+                新增库存
+              </Button>
+            )}
+          </Space>
+        }
+      />
+      {invStats && (
+        <div className="metric-grid">
+          <MetricCard title="在库条数" value={invStats.inStockCount} />
+          <MetricCard
+            title="已知重量合计"
+            value={invStats.knownWeightKg ?? '—'}
+            suffix={invStats.knownWeightKg === null ? '' : 'kg'}
+          />
+          <MetricCard title="未知重量条数" value={invStats.unknownWeightCount} />
+        </div>
+      )}
       <Card className="page-toolbar">
         <Form
           form={filterForm}
@@ -1339,49 +1458,7 @@ function InventoryPage({ token, rights }: { token: string; rights: string[] }) {
           >
             重置
           </Button>
-          {rights.includes('inventory.create') && <Button onClick={() => setEditing({})}>新增库存</Button>}
-          <Upload accept=".xlsx,.xlsm" beforeUpload={upload} showUploadList={false}>
-            <Button icon={<FileExcelOutlined />}>Excel 导入预检</Button>
-          </Upload>
-          {rights.includes('inventory.export') && (
-            <Button icon={<ExportOutlined />} loading={exporting} onClick={exportInventory}>
-              导出 Excel
-            </Button>
-          )}
-          {rights.includes('inventory.delete') && (
-            <Dropdown
-              open={deletedOpen}
-              onOpenChange={(open) => {
-                setDeletedOpen(open);
-                if (open) void loadDeleted();
-              }}
-              trigger={['click']}
-              dropdownRender={() => (
-                <div className="deleted-panel">
-                  <div className="deleted-panel-title">最近删除（{deletedRows.length}）</div>
-                  {deletedRows.length === 0 && <EmptyState text="暂无最近删除的记录" />}
-                  {deletedRows.map((row) => (
-                    <div className="deleted-row" key={row.id}>
-                      <div className="deleted-row-main">
-                        <b>{row.storageLocation}</b>
-                        <small>{row.deletedAt ? dayjs(row.deletedAt).format('YYYY-MM-DD HH:mm') : ''} 删除</small>
-                      </div>
-                      <Space size={4}>
-                        <Button size="small" type="link" onClick={() => void restoreInventory(row)}>
-                          恢复
-                        </Button>
-                        <Button size="small" type="link" danger onClick={() => purgeInventory(row)}>
-                          清理
-                        </Button>
-                      </Space>
-                    </div>
-                  ))}
-                </div>
-              )}
-            >
-              <Button icon={<DeleteOutlined />}>最近删除</Button>
-            </Dropdown>
-          )}
+          <span className="toolbar-hint">按日期区间或 L/a/b 范围精确定位在库余墨</span>
         </Form>
       </Card>
       {preflight && (
@@ -1553,13 +1630,23 @@ function OutboundPage({ token, rights }: { token: string; rights: string[] }) {
   const [keyword, setKeyword] = useState('');
   const [range, setRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [outStats, setOutStats] = useState<any>(null);
   const filterParams = (nextKeyword = keyword, nextRange = range) => {
     const params: Record<string, unknown> = { keyword: nextKeyword };
     if (nextRange?.[0]) params.from = nextRange[0].format('YYYY-MM-DD');
     if (nextRange?.[1]) params.to = nextRange[1].format('YYYY-MM-DD');
     return params;
   };
+  const loadOutStats = async () => {
+    try {
+      const result = await api<any>('/dashboard', {}, token);
+      setOutStats(result.statistics);
+    } catch {
+      setOutStats(null);
+    }
+  };
   const load = async (nextKeyword = keyword, nextRange = range) => {
+    void loadOutStats();
     setInventory(await api('/inventory/active', {}, token));
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(filterParams(nextKeyword, nextRange))) query.set(key, String(value));
@@ -1580,6 +1667,12 @@ function OutboundPage({ token, rights }: { token: string; rights: string[] }) {
   }, []);
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader title="出库管理" desc="登记余墨出库并查看出库记录" />
+      {outStats && (
+        <div className="metric-grid">
+          <MetricCard title="出库单 / 明细" value={`${outStats.outboundOrders} / ${outStats.outboundLines}`} />
+        </div>
+      )}
       <Card title="创建出库单">
         <Space wrap>
           <Input
@@ -1783,6 +1876,7 @@ function UsersPage({ token, rights }: { token: string; rights: string[] }) {
   const roleOptions = (roles?.roles ?? []).map((role: any) => ({ value: role.code, label: role.name }));
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader title="用户管理" desc="创建用户、分配角色与重置密码" />
       {canManage && (
         <Card title="新增用户">
           <Form
@@ -2011,6 +2105,7 @@ function BackupPage({ token, rights }: { token: string; rights: string[] }) {
   };
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader title="备份恢复" desc="创建完整备份或从备份文件恢复" />
       <Card>
         <Space wrap>
           {rights.includes('backup.manage') && (
@@ -2082,6 +2177,7 @@ function LogsPage({ token, rights }: { token: string; rights: string[] }) {
   }, []);
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <PageHeader title="操作日志" desc="系统操作审计记录，支持按关键字检索" />
       <Card className="page-toolbar">
         <Space>
           <Input placeholder="操作人、对象或备注" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
@@ -2130,15 +2226,19 @@ function StatisticsPage({ token }: { token: string }) {
   const total = data?.total as { inbound: number; outbound: number } | undefined;
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card className="page-toolbar">
-        <Space wrap size={8}>
-          <span>年份</span>
-          <Select style={{ width: 96 }} value={year} options={yearOptions} onChange={(value) => setYear(value)} />
-          <span>月份</span>
-          <Select style={{ width: 96 }} value={month} options={monthOptions} onChange={(value) => setMonth(value)} />
-          <Typography.Text type="secondary">双击某一行可查看当日出入库明细。</Typography.Text>
-        </Space>
-      </Card>
+      <PageHeader
+        title="数据统计"
+        desc="出入库趋势、分布与月度日报"
+        actions={
+          <Space wrap size={8}>
+            <span>年份</span>
+            <Select style={{ width: 96 }} value={year} options={yearOptions} onChange={(value) => setYear(value)} />
+            <span>月份</span>
+            <Select style={{ width: 96 }} value={month} options={monthOptions} onChange={(value) => setMonth(value)} />
+          </Space>
+        }
+      />
+      <InventoryCharts token={token} />
       <Card title={year + ' 年 ' + month + ' 月出入库日报'}>
         <ReorderableTable
           rowKey="date"

@@ -21,11 +21,11 @@ export function monthDayCount(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
 
-export function monthBounds(year: number, month: number) {
+function monthBounds(year: number, month: number) {
   return { start: new Date(year, month - 1, 1), end: new Date(year, month, 1) };
 }
 
-export type DailyCount = { date: string; inbound: number; outbound: number };
+type DailyCount = { date: string; inbound: number; outbound: number };
 
 export function buildMonthlyDays(
   year: number,

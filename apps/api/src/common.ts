@@ -89,8 +89,7 @@ export function cie76(left: { l: number; a: number; b: number }, right: { l: num
 
 type LabColor = { l: number; a: number; b: number };
 
-export const MATCH_FORMULAS = ['CIE76', 'CIE94', 'CIEDE2000'] as const;
-export type MatchFormula = (typeof MATCH_FORMULAS)[number];
+export type MatchFormula = 'CIE76' | 'CIE94' | 'CIEDE2000';
 
 export function normalizeFormula(value: unknown): MatchFormula {
   const text = String(value ?? '')

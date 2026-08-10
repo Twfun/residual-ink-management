@@ -71,7 +71,7 @@ export type MaterialInput = {
   remark?: unknown;
 };
 
-export type FormulaItemInput = {
+type FormulaItemInput = {
   materialId?: unknown;
   ratioPart?: unknown;
   sortNo?: unknown;
@@ -102,14 +102,14 @@ export type AdjustmentInput = {
   residualInk?: unknown;
 };
 
-export type QuickFormulaInkInput = {
+type QuickFormulaInkInput = {
   inkName?: unknown;
   inkBrand?: unknown;
   weightKg?: unknown;
   note?: unknown;
 };
 
-export type QuickFormulaRowInput = {
+type QuickFormulaRowInput = {
   sortNo?: unknown;
   colorName?: unknown;
   viscosity?: unknown;
@@ -626,7 +626,7 @@ export class FormulaService {
     if (before.status !== FORMULA_STATUS.draft) throw new BadRequestException('仅草稿状态可编辑，请复制为新版本。');
     const items = this.normalizeItems(input.items);
     if (items) await this.checkMaterials(items);
-    const formula = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       if (items) await tx.formulaItem.deleteMany({ where: { formulaId: target } });
       const updated = await tx.formula.update({
         where: { id: target },
