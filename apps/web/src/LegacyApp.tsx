@@ -162,6 +162,17 @@ export default function LegacyApp() {
   const [instrument, setInstrument] = useState<any>();
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  // 内容区滚动容器 ref + 返回顶部按钮可见性
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [showBackTop, setShowBackTop] = useState(false);
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const onScroll = () => setShowBackTop(el.scrollTop > 320);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
   useEffect(() => {
     if (token)
       api<User>('/auth/me', {}, token)
@@ -282,7 +293,7 @@ export default function LegacyApp() {
                 </Dropdown>
               </Space>
             </Layout.Header>
-            <Layout.Content className="enterprise-content">
+            <Layout.Content className="enterprise-content" ref={contentRef}>
               <div className="enterprise-page-shell">
                 {keepAliveKeys.map((key) => (
                   <div
@@ -317,6 +328,15 @@ export default function LegacyApp() {
                   </div>
                 ))}
               </div>
+              <button
+                type="button"
+                className={`rim-backtop${showBackTop ? ' is-visible' : ''}`}
+                aria-label="返回顶部"
+                title="返回顶部"
+                onClick={() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                <UpOutlined />
+              </button>
             </Layout.Content>
           </Layout>
         </Layout>
